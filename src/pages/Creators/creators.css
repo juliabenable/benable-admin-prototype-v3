@@ -964,6 +964,44 @@
 .prefs-toggle-btn.active.tone-purple { background: var(--pill-purple-bg); color: var(--pill-purple-text); }
 .prefs-toggle-btn.active.tone-gray { background: var(--color-surface-2); color: var(--color-text); }
 
+/* ─── Assign-to-Pool dialog list ─── */
+.assign-pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.assign-pool-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+}
+.assign-pool-row:hover { background: var(--color-surface-2); }
+.assign-pool-row.active {
+  background: var(--color-brand-subtle);
+  border-color: var(--color-brand);
+}
+.assign-pool-row-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.assign-pool-row-name { font-weight: 600; font-size: 13px; }
+.assign-pool-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.assign-pool-status.qualified { background: var(--pill-green-bg); color: var(--pill-green-text); border-color: var(--pill-green-border); }
+.assign-pool-status.confirmed { background: var(--pill-blue-bg); color: var(--pill-blue-text); border-color: var(--pill-blue-border); }
+.assign-pool-status.potential { background: var(--pill-purple-bg); color: var(--pill-purple-text); border-color: var(--pill-purple-border); }
+.assign-pool-status.archived { background: var(--color-surface-2); color: var(--color-text-muted); border-color: var(--color-border); }
+
 /* ─── Suggestions ─── */
 .prefs-suggestion-list {
   display: flex;

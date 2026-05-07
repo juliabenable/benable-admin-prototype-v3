@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  X, Mail, Phone, MapPin, Plus, MessageSquare, Star, CheckCircle2, Sparkles,
+  X, Mail, Phone, MapPin, Plus, MessageSquare, Star, CheckCircle2, Sparkles, Users,
 } from 'lucide-react';
 import Avatar from '../../components/Avatar.jsx';
 import Pill from '../../components/Pill.jsx';
@@ -14,6 +14,7 @@ import AICardTab from './tabs/AICard.jsx';
 import LogisticsTab from './tabs/Logistics.jsx';
 import ScoringTab from './tabs/Scoring.jsx';
 import AssignToCampaign from './modals/AssignToCampaign.jsx';
+import AssignToPool from './modals/AssignToPool.jsx';
 import SendNudge from './modals/SendNudge.jsx';
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
@@ -42,6 +43,7 @@ export default function ProfilePanel({ entry, onClose }) {
   const { events, campaigns } = useEventStore();
   const [tab, setTab] = useState('overview');
   const [assignOpen, setAssignOpen] = useState(false);
+  const [assignPoolOpen, setAssignPoolOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
   const [focusNote, setFocusNote] = useState(0);
 
@@ -61,11 +63,11 @@ export default function ProfilePanel({ entry, onClose }) {
 
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape' && !assignOpen && !nudgeOpen) onClose?.();
+      if (e.key === 'Escape' && !assignOpen && !assignPoolOpen && !nudgeOpen) onClose?.();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose, assignOpen, nudgeOpen]);
+  }, [onClose, assignOpen, assignPoolOpen, nudgeOpen]);
 
   const primaryPlatform = (creator.platformStats?.instagram?.followers ?? 0) >= (creator.platformStats?.tiktok?.followers ?? 0)
     ? 'instagram' : 'tiktok';
@@ -200,6 +202,9 @@ export default function ProfilePanel({ entry, onClose }) {
           <button type="button" className="btn primary" onClick={() => setAssignOpen(true)}>
             <Plus size={14} /> Assign to Campaign
           </button>
+          <button type="button" className="btn secondary" onClick={() => setAssignPoolOpen(true)}>
+            <Users size={14} /> Assign to Pool
+          </button>
           <button type="button" className="btn secondary" onClick={() => setNudgeOpen(true)}>
             <MessageSquare size={14} /> Send Nudge
           </button>
@@ -243,6 +248,9 @@ export default function ProfilePanel({ entry, onClose }) {
 
       {assignOpen && (
         <AssignToCampaign creator={creator} onClose={() => setAssignOpen(false)} />
+      )}
+      {assignPoolOpen && (
+        <AssignToPool creator={creator} onClose={() => setAssignPoolOpen(false)} />
       )}
       {nudgeOpen && (
         <SendNudge creator={creator} status={status} onClose={() => setNudgeOpen(false)} />
