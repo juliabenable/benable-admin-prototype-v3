@@ -6,6 +6,7 @@ import Avatar from '../../components/Avatar.jsx';
 import Pill from '../../components/Pill.jsx';
 import { InstagramIcon, TikTokIcon, BenableIcon } from '../../components/SocialIcons.jsx';
 import PortalStatusPill from '../../components/PortalStatusPill.jsx';
+import OverviewTab from './tabs/Overview.jsx';
 import ActivityTab from './tabs/Activity.jsx';
 import CampaignsTab from './tabs/Campaigns.jsx';
 import PreferencesTab from './tabs/Preferences.jsx';
@@ -20,6 +21,7 @@ import {
 } from '../../domain/selectors.js';
 
 const TABS = [
+  { id: 'overview',    label: 'Overview' },
   { id: 'activity',    label: 'Activity' },
   { id: 'campaigns',   label: 'Campaigns' },
   { id: 'aicard',      label: 'AI Card' },
@@ -38,7 +40,7 @@ export default function ProfilePanel({ entry, onClose }) {
   if (!entry) return null;
   const { creator, status, activeCampaignCount } = entry;
   const { events, campaigns } = useEventStore();
-  const [tab, setTab] = useState('activity');
+  const [tab, setTab] = useState('overview');
   const [assignOpen, setAssignOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
   const [focusNote, setFocusNote] = useState(0);
@@ -54,7 +56,7 @@ export default function ProfilePanel({ entry, onClose }) {
   );
 
   useEffect(() => {
-    setTab('activity');
+    setTab('overview');
   }, [creator.id]);
 
   useEffect(() => {
@@ -228,6 +230,7 @@ export default function ProfilePanel({ entry, onClose }) {
       </nav>
 
       <div className="profile-tab-body">
+        {tab === 'overview' && <OverviewTab creator={creator} onSwitchTab={setTab} />}
         {tab === 'activity' && <ActivityTab creator={creator} focusNoteKey={focusNote} />}
         {tab === 'campaigns' && (
           <CampaignsTab creator={creator} onOpenAssign={() => setAssignOpen(true)} />

@@ -361,6 +361,24 @@ function selectBrandPoolStatusFromEvents(creatorBrandEvents) {
   return status ? { status, archiveReason, archiveNote, since } : null;
 }
 
+// Returns the brand-pool memberships across ALL brands for a single creator.
+// Used by the Overview tab to show "this creator is in N brand pools".
+export function selectCreatorBrandPools(events, creatorId, brands) {
+  const out = [];
+  for (const brand of brands) {
+    const status = selectBrandPoolStatus(events, creatorId, brand.id);
+    if (status) out.push({ brand, ...status });
+  }
+  // Order: qualified → confirmed → potential → archived; tie-break recency
+  const rank = { qualified: 0, confirmed: 1, potential: 2, archived: 3 };
+  out.sort((a, b) => {
+    const r = (rank[a.status] ?? 4) - (rank[b.status] ?? 4);
+    if (r !== 0) return r;
+    return (b.since ?? '').localeCompare(a.since ?? '');
+  });
+  return out;
+}
+
 /* ───────── Brand notes ───────── */
 
 export function selectBrandNotes(events, brandId) {
