@@ -903,6 +903,90 @@
 .prefs-subfield .small { margin-bottom: 2px; }
 .prefs-tab .small { font-size: 12px; }
 
+/* ─── Tags section in Preferences ─── */
+.prefs-tag-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--color-border);
+}
+.prefs-tag-line:first-of-type { border-top: 0; padding-top: 0; }
+.prefs-tag-line .micro {
+  min-width: 100px;
+  flex-shrink: 0;
+}
+.prefs-tag-line .tag-mini { line-height: 1.4; }
+
+/* ─── Pool memberships with toggle ─── */
+.prefs-pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prefs-pool-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+}
+.prefs-pool-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.prefs-pool-name { font-weight: 600; font-size: 13px; }
+.prefs-pool-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+.prefs-toggle-btn {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.prefs-toggle-btn:first-child { border-left: 0; }
+.prefs-toggle-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+.prefs-toggle-btn.active.tone-green { background: var(--pill-green-bg); color: var(--pill-green-text); }
+.prefs-toggle-btn.active.tone-blue { background: var(--pill-blue-bg); color: var(--pill-blue-text); }
+.prefs-toggle-btn.active.tone-purple { background: var(--pill-purple-bg); color: var(--pill-purple-text); }
+.prefs-toggle-btn.active.tone-gray { background: var(--color-surface-2); color: var(--color-text); }
+
+/* ─── Suggestions ─── */
+.prefs-suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prefs-suggestion-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--color-brand-subtle);
+  border: 1px solid var(--color-brand);
+  border-radius: var(--radius-sm);
+}
+.prefs-suggestion-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 /* Creator-card style block (mirrors the existing campaign creator card aesthetic) */
 .creator-card {
   background: var(--color-surface);

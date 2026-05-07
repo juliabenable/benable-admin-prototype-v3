@@ -1,4 +1,14 @@
-import Avatar from '../../../components/Avatar.jsx';
+import { useMemo, useState } from 'react';
+import { Plus, Tag as TagIcon, Sparkles, Check, X } from 'lucide-react';
+import { useEventStore } from '../../../store/useEventStore.jsx';
+import { useToast } from '../../../components/Toast.jsx';
+import {
+  selectCreatorBrandPools, selectAllTags, selectAutoTags, AUTO_TAG_RULES,
+  scoreBriefFit,
+} from '../../../domain/selectors.js';
+import { EVENT_TYPES as E } from '../../../domain/events.js';
+import BrandLogo from '../../Brands/BrandLogo.jsx';
+import Pill from '../../../components/Pill.jsx';
 
 function isEmpty(v) {
   if (v == null) return true;
@@ -19,11 +29,6 @@ function OpennessChip({ value }) {
   return <span className={`pill ${meta.color}`}>{meta.label}</span>;
 }
 
-function nFormat(n) {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
-  return String(n);
-}
-
 function Field({ label, children, empty }) {
   if (empty) {
     return (
@@ -41,10 +46,122 @@ function Field({ label, children, empty }) {
   );
 }
 
+const STATUS_OPTIONS = [
+  { value: 'qualified', label: 'Qualified', color: 'green' },
+  { value: 'confirmed', label: 'Confirmed', color: 'blue' },
+  { value: 'potential', label: 'Potential', color: 'purple' },
+  { value: 'archived', label: 'Not qualified', color: 'gray' },
+];
+
+function PoolMembershipRow({ entry, creator, onChange }) {
+  const { brand, status, archiveReason } = entry;
+  return (
+    <div className="prefs-pool-row">
+      <BrandLogo brand={brand} size={28} />
+      <div className="prefs-pool-meta">
+        <div className="prefs-pool-name">{brand.name}</div>
+        <div className="muted small">{brand.handle}</div>
+      </div>
+      <div className="prefs-pool-toggle">
+        {STATUS_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`prefs-toggle-btn tone-${opt.color} ${status === opt.value ? 'active' : ''}`}
+            onClick={() => onChange(brand.id, opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function PreferencesTab({ creator }) {
+  const { events, brands, campaigns, appendEvent } = useEventStore();
+  const toast = useToast();
+
   const p = creator.preferences ?? {};
   const a = creator.audience ?? {};
   const onboarding = creator.onboardingStatus ?? 'pending';
+
+  const pools = useMemo(
+    () => selectCreatorBrandPools(events, creator.id, brands),
+    [events, creator.id, brands],
+  );
+
+  // Brand IDs creator is already in
+  const inPoolBrandIds = useMemo(
+    () => new Set(pools.filter((p) => p.status !== 'archived').map((p) => p.brand.id)),
+    [pools],
+  );
+
+  // Suggestions: brands NOT yet in pool ranked by fit. For pool-suggestion
+  // (vs. specific-campaign fit) we use only the creator's own platforms,
+  // so platform requirement isn't penalizing cross-platform suggestions —
+  // category overlap + onboarding openness dominates.
+  const suggestions = useMemo(() => {
+    const out = [];
+    for (const brand of brands) {
+      if (inPoolBrandIds.has(brand.id)) continue;
+      // Look for any live OR draft campaign for this brand
+      const candidateCampaign = campaigns.find(
+        (c) => c.brandHandle === brand.handle && (c.status === 'live' || c.status === 'draft'),
+      );
+      const brief = {
+        categories: brand.categories ?? [],
+        platforms: creator.socials ?? [],
+        gifted: !brand.paid,
+        brandIsSmall: true,
+      };
+      const fit = scoreBriefFit(creator, brief);
+      // Threshold lowered to surface anyone with at least some signal
+      if (fit.fit >= 3) {
+        out.push({ brand, fit, liveCampaign: candidateCampaign });
+      }
+    }
+    return out.sort((a, b) => b.fit.fit - a.fit.fit).slice(0, 4);
+  }, [brands, inPoolBrandIds, campaigns, creator]);
+
+  // Tag info (auto + custom)
+  const autoTags = useMemo(() => selectAutoTags(creator), [creator]);
+  const allTags = useMemo(() => selectAllTags(creator), [creator]);
+  const autoTagRules = useMemo(() => {
+    const map = new Map(AUTO_TAG_RULES.map((r) => [r.id, r]));
+    return autoTags.map((id) => map.get(id)).filter(Boolean);
+  }, [autoTags]);
+
+  function changePoolStatus(brandId, newStatus) {
+    const eventTypeMap = {
+      qualified: E.BRAND_POOL_QUALIFIED,
+      confirmed: E.BRAND_POOL_CONFIRMED,
+      potential: E.BRAND_POOL_UNARCHIVED, // resets to potential
+      archived: E.BRAND_POOL_ARCHIVED,
+    };
+    const evType = eventTypeMap[newStatus];
+    appendEvent({
+      type: evType,
+      creatorId: creator.id,
+      brandId,
+      actor: { kind: 'ops', name: 'Julia' },
+      payload: newStatus === 'archived' ? { reason: 'not-a-fit' } : {},
+    });
+    const brand = brands.find((b) => b.id === brandId);
+    toast(`${brand?.name}: marked ${newStatus === 'archived' ? 'not qualified' : newStatus}`);
+  }
+
+  function addToPool(brandId) {
+    appendEvent({
+      type: E.BRAND_POOL_ADDED,
+      creatorId: creator.id,
+      brandId,
+      actor: { kind: 'ops', name: 'Julia' },
+      payload: { source: 'preferences-suggestion' },
+    });
+    const brand = brands.find((b) => b.id === brandId);
+    toast(`Added ${creator.name} to ${brand?.name} pool`);
+  }
 
   const onboardingEmpty =
     isEmpty(p.workWith) && isEmpty(p.avoid) && isEmpty(p.giftedOpenness)
@@ -53,7 +170,7 @@ export default function PreferencesTab({ creator }) {
 
   return (
     <div className="prefs-tab">
-      {/* ─── Onboarding answers (top) ─── */}
+      {/* ─── ONBOARDING ANSWERS (top, per Katie May 7) ─── */}
       <section className="prefs-section">
         <h3>Onboarding answers</h3>
         {onboarding === 'pending' && (
@@ -108,67 +225,107 @@ export default function PreferencesTab({ creator }) {
         )}
       </section>
 
-      {/* ─── Creator card (About / Categories / Stats / Audience) ─── */}
-      <section className="creator-card">
-        <div className="creator-card-head">
-          <Avatar creator={creator} size={40} />
-          <div className="creator-card-name">
-            <div className="creator-card-name-row">
-              <span className="creator-card-name-text">{creator.name}</span>
-              <span className="creator-card-verified" title="Verified">✓</span>
-            </div>
-            <div className="creator-card-handle">{creator.handle}</div>
-          </div>
-        </div>
+      {/* ─── TAGS — what we know about this creator ─── */}
+      <section className="prefs-section">
+        <h3><TagIcon size={11} style={{ verticalAlign: '-1px', marginRight: 4 }} />Tags</h3>
+        <p className="muted small" style={{ marginBottom: 10 }}>
+          Auto-derived from socials, onboarding answers, and content. Saves the manual scroll-the-Instagram step.
+        </p>
 
-        <div className="creator-card-section">
-          <div className="creator-card-section-label">About me</div>
-          {isEmpty(p.about) ? (
-            <div className="prefs-field-empty">Not yet provided</div>
-          ) : (
-            <div className="creator-card-bio">{p.about}</div>
-          )}
-        </div>
-
-        {creator.categories?.length > 0 && (
-          <div className="creator-card-tags">
-            {creator.categories.map((c) => <span key={c} className="creator-card-tag">{c}</span>)}
+        {creator.locationCity && (
+          <div className="prefs-tag-line">
+            <span className="muted micro">Location</span>
+            <span className="tag-mini">{creator.locationCity}</span>
           </div>
         )}
-
-        <div className="creator-card-stats">
-          <div className="creator-card-stats-group">
-            <div className="creator-card-stats-group-label">Social Stats</div>
-            <div className="creator-card-stats-row">
-              <div className="creator-card-stat">
-                <div className="creator-card-stat-label">Followers</div>
-                <div className="creator-card-stat-value">{nFormat(creator.followerCount ?? 0)}</div>
-              </div>
-              <div className="creator-card-stat">
-                <div className="creator-card-stat-label">Engagement</div>
-                <div className="creator-card-stat-value">{(creator.engagementRate ?? 0).toFixed(1)}%</div>
-              </div>
+        {creator.contentNiche && (
+          <div className="prefs-tag-line">
+            <span className="muted micro">Niche</span>
+            <span className="tag-mini">{creator.contentNiche}</span>
+          </div>
+        )}
+        {creator.categories?.length > 0 && (
+          <div className="prefs-tag-line">
+            <span className="muted micro">Categories</span>
+            <div className="prefs-tags">
+              {creator.categories.map((c) => <span key={c} className="tag-mini">{c}</span>)}
             </div>
           </div>
-          <div className="creator-card-stats-group">
-            <div className="creator-card-stats-group-label">Audience</div>
-            <div className="creator-card-stats-row">
-              <div className="creator-card-stat">
-                <div className="creator-card-stat-label">Location</div>
-                <div className="creator-card-stat-value">{a.location ?? '—'}</div>
-              </div>
-              <div className="creator-card-stat">
-                <div className="creator-card-stat-label">Gender</div>
-                <div className="creator-card-stat-value">{a.genderFemalePct != null ? `${a.genderFemalePct}% Female` : '—'}</div>
-              </div>
-              <div className="creator-card-stat">
-                <div className="creator-card-stat-label">Age Range</div>
-                <div className="creator-card-stat-value">{a.ageRange ?? '—'}</div>
-              </div>
+        )}
+        {creator.contentFormatStrengths?.length > 0 && (
+          <div className="prefs-tag-line">
+            <span className="muted micro">Content formats</span>
+            <div className="prefs-tags">
+              {creator.contentFormatStrengths.map((c) => <span key={c} className="tag-mini">{c}</span>)}
             </div>
           </div>
-        </div>
+        )}
+        {autoTagRules.length > 0 && (
+          <div className="prefs-tag-line">
+            <span className="muted micro">Signals</span>
+            <div className="prefs-tags">
+              {autoTagRules.map((r) => <span key={r.id} className="tag-mini">{r.label}</span>)}
+            </div>
+          </div>
+        )}
       </section>
+
+      {/* ─── POOL MEMBERSHIPS — toggle qualified / confirmed / potential / not-qualified ─── */}
+      <section className="prefs-section">
+        <h3>Brand pools</h3>
+        <p className="muted small" style={{ marginBottom: 10 }}>
+          Which brand pools this creator is in, and whether they're qualified for each. Toggle status per brand.
+        </p>
+        {pools.length === 0 ? (
+          <p className="muted small">Not in any brand pool yet.</p>
+        ) : (
+          <div className="prefs-pool-list">
+            {pools.map((entry) => (
+              <PoolMembershipRow
+                key={entry.brand.id}
+                entry={entry}
+                creator={creator}
+                onChange={changePoolStatus}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ─── SUGGESTIONS — pools they could be a fit for ─── */}
+      {suggestions.length > 0 && (
+        <section className="prefs-section">
+          <h3><Sparkles size={11} style={{ verticalAlign: '-1px', marginRight: 4 }} />Suggested pools</h3>
+          <p className="muted small" style={{ marginBottom: 10 }}>
+            Based on tags + onboarding answers + active campaigns from other brands. AI pass — review before adding.
+          </p>
+          <div className="prefs-suggestion-list">
+            {suggestions.map(({ brand, fit, liveCampaign }) => (
+              <div key={brand.id} className="prefs-suggestion-row">
+                <BrandLogo brand={brand} size={28} />
+                <div className="prefs-suggestion-meta">
+                  <div className="prefs-pool-name">{brand.name}</div>
+                  <div className="muted small">
+                    {liveCampaign ? `${liveCampaign.name} · ` : ''}Fit {fit.fit.toFixed(1)}/10
+                  </div>
+                  {fit.reasons.length > 0 && (
+                    <div className="muted small">
+                      {fit.reasons.slice(0, 2).join(' · ')}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn primary small"
+                  onClick={() => addToPool(brand.id)}
+                >
+                  <Plus size={13} /> Add to pool
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
