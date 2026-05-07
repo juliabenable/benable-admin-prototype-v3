@@ -111,7 +111,7 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
       type: E.BRAND_POOL_ADDED,
-      creatorId: cid, brandId: 'brand_clean_beauty_club',
+      creatorId: cid, brandId: 'brand_pikora',
       actor: KATIE,
       timestamp: daysAgo(8, 11),
       payload: { source: 'logan-import' },
@@ -137,7 +137,7 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
       note: 'Aesthetic doesn\'t match the cozy western vibe.' },
     { brandId: 'brand_aubree_says', creatorId: 'cr_g15', reason: 'timing',
       note: 'Invited 18 days ago, no response.' },
-    { brandId: 'brand_clean_beauty_club', creatorId: 'cr_g28', reason: 'not-open-to-gifted' },
+    { brandId: 'brand_pikora', creatorId: 'cr_g28', reason: 'not-open-to-gifted' },
     { brandId: 'brand_home_with_tay', creatorId: 'cr_g22', reason: 'failed-onboarding',
       note: 'Stopped at step 3 of onboarding.' },
   ];
@@ -161,13 +161,13 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
   // 4. Returning collaborators — Sage in multiple brands
   events.push(makeEvent({
     type: E.BRAND_POOL_ADDED,
-    creatorId: 'cr_sage', brandId: 'brand_clean_beauty_club',
+    creatorId: 'cr_sage', brandId: 'brand_pikora',
     actor: KATIE,
     timestamp: daysAgo(45, 10),
   }));
   events.push(makeEvent({
     type: E.BRAND_POOL_QUALIFIED,
-    creatorId: 'cr_sage', brandId: 'brand_clean_beauty_club',
+    creatorId: 'cr_sage', brandId: 'brand_pikora',
     actor: KATIE,
     timestamp: daysAgo(43, 14),
   }));
@@ -175,13 +175,13 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
   // Willow in Clean Beauty Club too (returning collaborator)
   events.push(makeEvent({
     type: E.BRAND_POOL_ADDED,
-    creatorId: 'cr_willow', brandId: 'brand_clean_beauty_club',
+    creatorId: 'cr_willow', brandId: 'brand_pikora',
     actor: DESTINY,
     timestamp: daysAgo(60, 10),
   }));
   events.push(makeEvent({
     type: E.BRAND_POOL_QUALIFIED,
-    creatorId: 'cr_willow', brandId: 'brand_clean_beauty_club',
+    creatorId: 'cr_willow', brandId: 'brand_pikora',
     actor: DESTINY,
     timestamp: daysAgo(58, 14),
   }));
@@ -198,15 +198,92 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     payload: { body: 'She specifically asked for fewer pure-fashion creators this round. More lifestyle/home angle.' },
   }));
   events.push(makeEvent({
-    type: E.BRAND_NOTE_ADDED, brandId: 'brand_clean_beauty_club', actor: KATIE,
+    type: E.BRAND_NOTE_ADDED, brandId: 'brand_pikora', actor: KATIE,
     timestamp: daysAgo(7, 14),
-    payload: { body: 'Dana (Bloom) prefers email summaries every Friday — adjust cadence.' },
+    payload: { body: 'Naya wants to lean into the "everyday wellness" angle for the bone broth collection.' },
   }));
   events.push(makeEvent({
     type: E.BRAND_NOTE_ADDED, brandId: 'brand_kinder_living', actor: JULIA,
     timestamp: daysAgo(3, 16),
     payload: { body: 'Tony demoed May 3. Mei wants gifted bundles for moms 28–40 with kids under 5. Brief due any day.' },
   }));
+
+  // 6. Seed events for the Pikora live campaign (so "On track" actually has data)
+  // Pikora has 5 Qualified creators (Sage, Willow, plus generic ones from Glow Edit history).
+  // Assign ~11 to the live bone broth campaign at varied stages.
+  const pikoraBoneBrothCampaign = 'camp_pikora_bone_broth';
+
+  // Eligible: feature creators + selected generics
+  const pikoraCreators = [
+    { id: 'cr_sage', stage: 'PRODUCTS_SELECTED', day: 6 },
+    { id: 'cr_willow', stage: 'PRODUCTS_SELECTED', day: 6 },
+    { id: 'cr_dani', stage: 'CAMPAIGN_ACCEPTED', day: 4 },
+    { id: 'cr_ellie', stage: 'CAMPAIGN_ACCEPTED', day: 4 },
+    { id: 'cr_g04', stage: 'PRODUCTS_SELECTED', day: 6 },
+    { id: 'cr_g07', stage: 'PRODUCTS_SELECTED', day: 6 },
+    { id: 'cr_g10', stage: 'CAMPAIGN_ACCEPTED', day: 4 },
+    { id: 'cr_g13', stage: 'CAMPAIGN_ACCEPTED', day: 4 },
+    { id: 'cr_g16', stage: 'ASSIGNED_TO_CAMPAIGN', day: 2 },
+    { id: 'cr_g19', stage: 'BRIEF_SCROLLED', day: 3 },
+    { id: 'cr_g25', stage: 'BRIEF_SCROLLED', day: 3 },
+  ];
+  for (const p of pikoraCreators) {
+    if (!creators.find((c) => c.id === p.id)) continue;
+    // Always assign first
+    events.push(makeEvent({
+      type: E.ASSIGNED_TO_CAMPAIGN,
+      creatorId: p.id, campaignId: pikoraBoneBrothCampaign,
+      actor: KATIE, timestamp: daysAgo(p.day + 4, 11),
+    }));
+    if (p.stage === 'BRIEF_SCROLLED' || p.stage === 'CAMPAIGN_ACCEPTED' || p.stage === 'PRODUCTS_SELECTED') {
+      events.push(makeEvent({
+        type: E.CAMPAIGN_DETAILS_VIEWED,
+        creatorId: p.id, campaignId: pikoraBoneBrothCampaign,
+        actor: { kind: 'creator' }, timestamp: daysAgo(p.day + 3, 14),
+      }));
+      events.push(makeEvent({
+        type: E.CAMPAIGN_BRIEF_SCROLLED,
+        creatorId: p.id, campaignId: pikoraBoneBrothCampaign,
+        actor: { kind: 'creator' }, timestamp: daysAgo(p.day + 3, 16),
+      }));
+    }
+    if (p.stage === 'CAMPAIGN_ACCEPTED' || p.stage === 'PRODUCTS_SELECTED') {
+      events.push(makeEvent({
+        type: E.CAMPAIGN_ACCEPTED,
+        creatorId: p.id, campaignId: pikoraBoneBrothCampaign,
+        actor: { kind: 'creator' }, timestamp: daysAgo(p.day + 2, 11),
+      }));
+    }
+    if (p.stage === 'PRODUCTS_SELECTED') {
+      events.push(makeEvent({
+        type: E.PRODUCT_SELECTED,
+        creatorId: p.id, campaignId: pikoraBoneBrothCampaign,
+        actor: { kind: 'creator' }, timestamp: daysAgo(p.day, 14),
+      }));
+    }
+  }
+
+  // 7. Brand operational lifecycle events
+  // Aubree Says — fully onboarded, signed, billing active
+  events.push(makeEvent({ type: E.BRAND_ONBOARDING_COMPLETED, brandId: 'brand_aubree_says', actor: KATIE, timestamp: daysAgo(50, 11) }));
+  events.push(makeEvent({ type: E.BRAND_CONTRACT_SIGNED, brandId: 'brand_aubree_says', actor: KATIE, timestamp: daysAgo(48, 14) }));
+  events.push(makeEvent({ type: E.BRAND_INVOICE_PAID, brandId: 'brand_aubree_says', actor: { kind: 'system' }, timestamp: daysAgo(45, 9) }));
+
+  // Pikora — fully onboarded, signed, billing active
+  events.push(makeEvent({ type: E.BRAND_ONBOARDING_COMPLETED, brandId: 'brand_pikora', actor: KATIE, timestamp: daysAgo(70, 11) }));
+  events.push(makeEvent({ type: E.BRAND_CONTRACT_SIGNED, brandId: 'brand_pikora', actor: KATIE, timestamp: daysAgo(68, 14) }));
+  events.push(makeEvent({ type: E.BRAND_INVOICE_PAID, brandId: 'brand_pikora', actor: { kind: 'system' }, timestamp: daysAgo(65, 9) }));
+
+  // Home with Tay — completed everything (paid + billing settled after a completed campaign)
+  events.push(makeEvent({ type: E.BRAND_ONBOARDING_COMPLETED, brandId: 'brand_home_with_tay', actor: KATIE, timestamp: daysAgo(150, 11) }));
+  events.push(makeEvent({ type: E.BRAND_CONTRACT_SIGNED, brandId: 'brand_home_with_tay', actor: KATIE, timestamp: daysAgo(148, 14) }));
+  events.push(makeEvent({ type: E.BRAND_INVOICE_PAID, brandId: 'brand_home_with_tay', actor: { kind: 'system' }, timestamp: daysAgo(145, 9) }));
+  events.push(makeEvent({ type: E.BRAND_BILLING_SETTLED, brandId: 'brand_home_with_tay', actor: { kind: 'system' }, timestamp: daysAgo(15, 9) }));
+
+  // Kinder Living — onboarding in progress, contract signed but invoice not paid
+  events.push(makeEvent({ type: E.BRAND_ONBOARDING_STARTED, brandId: 'brand_kinder_living', actor: JULIA, timestamp: daysAgo(3, 16) }));
+  events.push(makeEvent({ type: E.BRAND_CONTRACT_SIGNED, brandId: 'brand_kinder_living', actor: JULIA, timestamp: daysAgo(2, 11) }));
+  events.push(makeEvent({ type: E.BRAND_INVOICE_SENT, brandId: 'brand_kinder_living', actor: { kind: 'system' }, timestamp: daysAgo(2, 12) }));
 
   // AI cards: generated + some reviewed
   const aiCardSeeds = [

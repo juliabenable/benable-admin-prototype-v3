@@ -1,5 +1,6 @@
 // Brands as first-class entities. Each brand has context, contacts, and is
-// the parent of one or more campaigns.
+// the parent of one or more campaigns. Operational state (onboarding,
+// contract, billing) is derived from BRAND_* events.
 
 export const SEED_BRANDS = [
   {
@@ -17,6 +18,48 @@ export const SEED_BRANDS = [
     monthlyCampaigns: 1.5,
     avgInviteToAccept: 0.62,
     description: 'Cozy lifestyle brand — apparel + home + gifted-only campaigns.',
+    // Initial operational state defaults; overridable via events
+    initialOnboarding: 'complete',
+    initialContract: 'signed',
+    initialBilling: 'active',
+  },
+  {
+    id: 'brand_kinder_living',
+    name: 'Kinder Living',
+    handle: '@kinder-living',
+    logoColor: 'D',
+    provenance: 'Demo with Tony · May 3, 2026',
+    relationshipType: 'Direct',
+    contactName: 'Mei Park',
+    contactEmail: 'mei@kinderliving.com',
+    paid: false,
+    rate: null,
+    subscribedSince: '2026-05-03',
+    monthlyCampaigns: null,
+    avgInviteToAccept: null,
+    description: 'New mom-life brand, brief expected this week.',
+    initialOnboarding: 'in-progress',
+    initialContract: 'signed',
+    initialBilling: 'awaiting-first-payment',
+  },
+  {
+    id: 'brand_pikora',
+    name: 'Pikora',
+    handle: '@pikora',
+    logoColor: 'C',
+    provenance: 'Inbound — founder cold-DM\'d via Instagram',
+    relationshipType: 'Direct',
+    contactName: 'Naya Pillai',
+    contactEmail: 'naya@pikora.co',
+    paid: false,
+    rate: null,
+    subscribedSince: '2026-02-20',
+    monthlyCampaigns: 1,
+    avgInviteToAccept: 0.68,
+    description: 'Wellness supplements — bone broth + collagen.',
+    initialOnboarding: 'complete',
+    initialContract: 'signed',
+    initialBilling: 'active',
   },
   {
     id: 'brand_home_with_tay',
@@ -33,46 +76,18 @@ export const SEED_BRANDS = [
     monthlyCampaigns: 0.5,
     avgInviteToAccept: 0.71,
     description: 'Home-and-living brand running occasional gifted drops.',
-  },
-  {
-    id: 'brand_clean_beauty_club',
-    name: 'Clean Beauty Club',
-    handle: '@cleanbeautyclub',
-    logoColor: 'C',
-    provenance: 'Introduced by Bloom Agency (Dana Hartmann)',
-    relationshipType: 'Agency',
-    agency: 'Bloom Agency',
-    contactName: 'Dana Hartmann',
-    contactEmail: 'dana@bloomagency.co',
-    paid: false,
-    rate: null,
-    subscribedSince: '2026-01-08',
-    monthlyCampaigns: 1,
-    avgInviteToAccept: 0.55,
-    description: 'Clean-ingredient beauty brand, agency-managed.',
-  },
-  {
-    id: 'brand_kinder_living',
-    name: 'Kinder Living',
-    handle: '@kinder.living',
-    logoColor: 'D',
-    provenance: 'Demo with Tony · May 3, 2026',
-    relationshipType: 'Direct',
-    contactName: 'Mei Park',
-    contactEmail: 'mei@kinderliving.com',
-    paid: false,
-    rate: null,
-    subscribedSince: '2026-05-03',
-    monthlyCampaigns: null, // new
-    avgInviteToAccept: null,
-    description: 'New mom-life brand, brief expected this week.',
+    initialOnboarding: 'complete',
+    initialContract: 'signed',
+    initialBilling: 'settled',
   },
 ];
 
-// Map campaign → brand (must align with SEED_CAMPAIGNS in campaigns.js)
+// Map campaign → brand
 export const CAMPAIGN_TO_BRAND = {
   camp_western_cozy: 'brand_aubree_says',
   camp_spring_refresh: 'brand_home_with_tay',
-  camp_glow_edit: 'brand_clean_beauty_club',
+  camp_glow_edit: 'brand_pikora',
   camp_summer_mom: 'brand_kinder_living',
+  camp_pikora_bone_broth: 'brand_pikora',
+  camp_aubree_holiday: 'brand_aubree_says',
 };

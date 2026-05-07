@@ -53,6 +53,285 @@
 .brand-card.is-live {
   border-left: 3px solid var(--pill-green-text);
 }
+
+/* ─────────────────────────────────────────
+   Brand list v2 (grouped + ops-actionable)
+   ───────────────────────────────────────── */
+.brands-list-header-v2 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.brands-list-header-v2 h1 { font-size: 22px; font-weight: 600; }
+
+.brands-legend {
+  display: flex;
+  gap: 18px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.brands-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.brands-legend .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dot.tone-orange { background: #F59E0B; }
+.dot.tone-green { background: #16A34A; }
+.dot.tone-blue { background: #3B82F6; }
+
+.brands-section-v2 {
+  margin-bottom: 24px;
+}
+.brands-section-title-v2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+.brands-section-v2:first-of-type .brands-section-title-v2 {
+  color: #B45309;
+}
+
+.brands-list-v2 {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.brand-card-v2 {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+  overflow: hidden;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+.brand-card-v2:hover { box-shadow: var(--shadow-md); }
+.brand-card-v2.accent-orange { border-left-color: #F59E0B; }
+.brand-card-v2.accent-green { border-left-color: #16A34A; }
+
+.brand-card-v2-link {
+  display: block;
+  padding: 18px 20px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-card-v2-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.brand-card-v2-titles { flex: 1; min-width: 0; }
+.brand-card-v2-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.brand-card-v2-name { font-size: 16px; font-weight: 600; }
+.brand-card-v2-handle { font-size: 13px; color: var(--color-text-muted); }
+.brand-card-v2-desc { font-size: 13px; color: var(--color-text-muted); margin-top: 2px; }
+
+.brand-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.brand-status-pill.tone-green { background: var(--pill-green-bg); color: var(--pill-green-text); border-color: var(--pill-green-border); }
+.brand-status-pill.tone-yellow { background: var(--pill-yellow-bg); color: var(--pill-yellow-text); border-color: var(--pill-yellow-border); }
+.brand-status-pill.tone-gray { background: var(--color-surface-2); color: var(--color-text-muted); border-color: var(--color-border); }
+
+/* Operational row */
+.brand-op-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 12px;
+}
+.brand-op-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.brand-op-cell-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+.brand-op-cell-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.brand-op-cell-value.tone-green { color: var(--pill-green-text); }
+.brand-op-cell-value.tone-yellow { color: var(--pill-yellow-text); }
+.brand-op-cell-value.tone-red { color: var(--pill-red-text); }
+.brand-op-cell-value.tone-gray { color: var(--color-text-muted); }
+
+/* Pool stats */
+.brand-pool-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+}
+.brand-pool-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.brand-pool-stat-num {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.brand-pool-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.brand-pool-divider { color: var(--color-text-subtle); }
+
+/* Campaigns section */
+.brand-campaigns-section { margin-top: 6px; }
+.brand-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.brand-campaign-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.brand-campaign-block:last-child { margin-bottom: 0; }
+
+.brand-campaign-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  align-items: center;
+}
+.brand-campaign-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.brand-campaign-row-name { font-size: 14px; font-weight: 600; }
+.brand-campaign-row-stages {
+  grid-column: 1;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.brand-campaign-row-status {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.brand-campaign-waiting {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+.brand-campaign-waiting.tone-yellow { color: var(--pill-yellow-text); background: var(--pill-yellow-bg); border-color: var(--pill-yellow-border); }
+.brand-campaign-waiting.tone-blue { color: var(--pill-blue-text); background: var(--pill-blue-bg); border-color: var(--pill-blue-border); }
+.brand-campaign-waiting.tone-green { color: var(--pill-green-text); background: var(--pill-green-bg); border-color: var(--pill-green-border); }
+.brand-campaign-waiting.tone-gray { color: var(--color-text-muted); background: var(--color-surface-2); border-color: var(--color-border); }
+
+/* Stage chips inline within the campaign row */
+.brand-stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid;
+  background: var(--color-surface);
+}
+.brand-stage-chip.zero { opacity: 0.5; }
+.brand-stage-chip.tone-yellow { color: var(--pill-yellow-text); border-color: var(--pill-yellow-border); background: var(--pill-yellow-bg); }
+.brand-stage-chip.tone-blue { color: var(--pill-blue-text); border-color: var(--pill-blue-border); background: var(--pill-blue-bg); }
+.brand-stage-chip.tone-red { color: var(--pill-red-text); border-color: var(--pill-red-border); background: var(--pill-red-bg); }
+.brand-stage-chip.tone-green { color: var(--pill-green-text); border-color: var(--pill-green-border); background: var(--pill-green-bg); }
+.brand-stage-chip-label { font-weight: 500; }
+.brand-stage-chip-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Alert banners */
+.brand-alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  border: 1px solid;
+}
+.brand-alert-banner.warning {
+  background: #FEF3C7;
+  border-color: #FDE68A;
+  color: #B45309;
+}
+.brand-alert-banner.ops {
+  background: #DBEAFE;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
+}
+.brand-alert-banner svg { margin-top: 2px; flex-shrink: 0; }
+
 .brand-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

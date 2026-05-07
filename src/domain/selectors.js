@@ -761,6 +761,177 @@ export function overallScoreColor(score) {
   return 'red';
 }
 
+/* ─────────────────────────────────────────
+   Brand operational state (per Brands tab redesign)
+   ───────────────────────────────────────── */
+
+export function selectBrandOperationalState(brand, events) {
+  const brandEvents = events.filter((e) => e.brandId === brand.id);
+
+  // Onboarding
+  let onboarding = brand.initialOnboarding ?? 'not-started';
+  if (brandEvents.some((e) => e.type === E.BRAND_ONBOARDING_COMPLETED)) onboarding = 'complete';
+  else if (brandEvents.some((e) => e.type === E.BRAND_ONBOARDING_STARTED)) onboarding = 'in-progress';
+
+  // Contract
+  let contract = brand.initialContract ?? 'unsigned';
+  if (brandEvents.some((e) => e.type === E.BRAND_CONTRACT_SIGNED)) contract = 'signed';
+
+  // Billing
+  let billing = brand.initialBilling ?? 'awaiting-first-payment';
+  if (brandEvents.some((e) => e.type === E.BRAND_BILLING_SETTLED)) billing = 'settled';
+  else if (brandEvents.some((e) => e.type === E.BRAND_INVOICE_PAID)) billing = 'active';
+  else if (brandEvents.some((e) => e.type === E.BRAND_INVOICE_SENT)) billing = 'awaiting-first-payment';
+
+  return { onboarding, contract, billing };
+}
+
+// Top-level brand status pill
+export function selectBrandStatus(brand, operationalState, brandCampaigns) {
+  if (operationalState.onboarding !== 'complete' || operationalState.contract !== 'signed'
+      || operationalState.billing === 'awaiting-first-payment') {
+    return { kind: 'onboarding', label: 'Onboarding', color: 'yellow' };
+  }
+  const hasLive = brandCampaigns.some((c) => c.status === 'live');
+  const hasDraft = brandCampaigns.some((c) => c.status === 'draft');
+  const allCompleted = brandCampaigns.length > 0 && brandCampaigns.every((c) => c.status === 'completed');
+  if (allCompleted) return { kind: 'completed', label: 'Completed', color: 'green' };
+  if (hasLive || hasDraft) return { kind: 'active', label: 'Active', color: 'green' };
+  return { kind: 'inactive', label: 'No campaigns', color: 'gray' };
+}
+
+/* ─────────────────────────────────────────
+   Per-campaign stage counts (for the brand tab)
+   ───────────────────────────────────────── */
+
+export function selectCampaignStageCounts(events, campaignId, campaigns) {
+  // Get unique creators in this campaign
+  const creatorIds = new Set();
+  for (const e of events) {
+    if (e.campaignId === campaignId && e.creatorId) creatorIds.add(e.creatorId);
+  }
+  const counts = {
+    invited: 0,        // assigned but no decision yet
+    accepted: 0,       // accepted, not yet shipped
+    declined: 0,
+    productSelected: 0,
+    ordered: 0,
+    shipped: 0,
+    delivered: 0,
+    contentSubmitted: 0,
+    awaitingReview: 0,
+    feedbackGiven: 0,
+    waitingFinalLinks: 0,
+    posted: 0,
+    completed: 0,
+    total: creatorIds.size,
+    waitingOnBrand: 0,
+  };
+
+  for (const cid of creatorIds) {
+    const cs = selectCreatorCampaigns(events, cid, campaigns).find((x) => x.campaign.id === campaignId);
+    if (!cs) continue;
+    const stage = cs.stage;
+    if (stage === 'DECLINED') counts.declined += 1;
+    else if (stage === 'ASSIGNED' || stage === 'DETAILS_VIEWED' || stage === 'BRIEF_SCROLLED') counts.invited += 1;
+    else if (stage === 'ACCEPTED') counts.accepted += 1;
+    else if (stage === 'PRODUCTS_SELECTED') counts.productSelected += 1;
+    else if (stage === 'ORDER_PLACED') counts.ordered += 1;
+    else if (stage === 'PRODUCT_SHIPPED') { counts.shipped += 1; counts.waitingOnBrand += 1; }
+    else if (stage === 'DELIVERED') counts.delivered += 1;
+    else if (stage === 'CONTENT_SUBMITTED') { counts.contentSubmitted += 1; counts.awaitingReview += 1; }
+    else if (stage === 'CONTENT_REVISION_REQUESTED') counts.feedbackGiven += 1;
+    else if (stage === 'CONTENT_APPROVED') counts.waitingFinalLinks += 1;
+    else if (stage === 'CONTENT_LIVE') counts.posted += 1;
+  }
+  return counts;
+}
+
+// Stale invites: assigned >7 days ago with no progression past ASSIGNED
+export function selectStaleInvitesForCampaign(events, campaignId, campaigns, creators) {
+  const stale = [];
+  const creatorIds = new Set();
+  for (const e of events) {
+    if (e.campaignId === campaignId && e.creatorId) creatorIds.add(e.creatorId);
+  }
+  for (const cid of creatorIds) {
+    const cs = selectCreatorCampaigns(events, cid, campaigns).find((x) => x.campaign.id === campaignId);
+    if (!cs) continue;
+    if (cs.stage === 'ASSIGNED' || cs.stage === 'DETAILS_VIEWED' || cs.stage === 'BRIEF_SCROLLED') {
+      const days = relativeDays(cs.lastUpdate);
+      if (days >= 7) {
+        const creator = creators.find((c) => c.id === cid);
+        stale.push({ creator, days, lastUpdate: cs.lastUpdate, stage: cs.stage });
+      }
+    }
+  }
+  return stale;
+}
+
+// Per-campaign waiting state (who's blocking?)
+export function selectCampaignWaitingState(stageCounts, campaign, opState) {
+  if (campaign.status === 'completed') return { kind: 'done', label: 'Done', color: 'green' };
+  if (campaign.status === 'draft' && stageCounts.total === 0) {
+    if (opState.onboarding !== 'complete' || opState.billing === 'awaiting-first-payment') {
+      return { kind: 'waiting-on-brand', label: 'Waiting on brand', color: 'yellow' };
+    }
+    return { kind: 'waiting-on-us', label: 'Waiting on us', color: 'blue' };
+  }
+  // For live campaigns:
+  // If any creators are at "shipped" or earlier-brand-action stages
+  if (stageCounts.invited > 0 && stageCounts.accepted === 0) {
+    return { kind: 'waiting-on-creators', label: 'Awaiting creator decisions', color: 'yellow' };
+  }
+  if (stageCounts.accepted > 0 || stageCounts.productSelected > 0) {
+    return { kind: 'waiting-on-brand', label: 'Waiting on brand', color: 'yellow' };
+  }
+  if (stageCounts.shipped > 0) {
+    return { kind: 'waiting-on-creators', label: 'Awaiting content', color: 'yellow' };
+  }
+  if (stageCounts.contentSubmitted > 0) {
+    return { kind: 'waiting-on-brand', label: 'Brand reviewing content', color: 'yellow' };
+  }
+  if (stageCounts.posted > 0 && stageCounts.posted === stageCounts.total) {
+    return { kind: 'done', label: 'On track', color: 'green' };
+  }
+  return { kind: 'on-track', label: 'On track', color: 'green' };
+}
+
+// Brand-level action category — for grouping in Brands tab
+export function selectBrandActionCategory(brand, opState, brandCampaigns, brandPool, allEvents, creators, campaigns) {
+  // 1) Operational gates
+  if (opState.onboarding !== 'complete' || opState.contract !== 'signed' || opState.billing === 'awaiting-first-payment') {
+    return { category: 'needs-action', accent: 'orange', why: ['Brand onboarding incomplete or first payment pending'] };
+  }
+
+  const reasons = [];
+
+  // 2) Live campaigns with stale invites or pending brand actions
+  for (const c of brandCampaigns) {
+    if (c.status !== 'live') continue;
+    const stale = selectStaleInvitesForCampaign(allEvents, c.id, campaigns, creators);
+    if (stale.length > 0) {
+      const first = stale[0];
+      reasons.push(`${first.creator?.name ?? 'Creator'} — Invited ${first.days}d ago (stale). Brand needs to select creators.`);
+    }
+  }
+
+  // 3) Draft campaigns with no creators loaded
+  for (const c of brandCampaigns) {
+    if (c.status === 'draft') {
+      const counts = selectCampaignStageCounts(allEvents, c.id, campaigns);
+      if (counts.total === 0) {
+        reasons.push(`Load creators from pre-selection into ${c.name}`);
+      }
+    }
+  }
+
+  if (reasons.length > 0) {
+    return { category: 'needs-action', accent: 'orange', why: reasons };
+  }
+  return { category: 'on-track', accent: 'green', why: [] };
+}
+
 /* ───────── AI Card (per creator × campaign) ───────── */
 
 export function selectAICard(events, creatorId, campaignId) {

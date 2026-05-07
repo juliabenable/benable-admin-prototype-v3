@@ -1,110 +1,269 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import {
+  Check, Clock, AlertCircle, AlertTriangle, ListChecks, CircleDot, Hourglass,
+} from 'lucide-react';
 import { useEventStore } from '../../store/useEventStore.jsx';
-import { selectBrandPool } from '../../domain/selectors.js';
+import {
+  selectBrandPool, selectBrandOperationalState, selectBrandStatus,
+  selectCampaignStageCounts, selectCampaignWaitingState,
+  selectBrandActionCategory, selectStaleInvitesForCampaign,
+} from '../../domain/selectors.js';
 import Pill from '../../components/Pill.jsx';
 import BrandLogo from './BrandLogo.jsx';
 
-function brandActivity(brand, campaigns) {
-  const own = campaigns.filter((c) => c.brandHandle === brand.handle);
-  const live = own.filter((c) => c.status === 'live').length;
-  const draft = own.filter((c) => c.status === 'draft').length;
-  const completed = own.filter((c) => c.status === 'completed').length;
-  if (live > 0) return { kind: 'live', label: `${live} live`, color: 'green' };
-  if (draft > 0) return { kind: 'draft', label: `${draft} draft`, color: 'blue' };
-  if (completed > 0) return { kind: 'quiet', label: `${completed} completed`, color: 'gray' };
-  return { kind: 'none', label: 'No campaigns yet', color: 'gray' };
-}
+const ONBOARDING_LABEL = {
+  'complete': { label: 'Complete', icon: Check, tone: 'green' },
+  'in-progress': { label: 'In progress', icon: CircleDot, tone: 'yellow' },
+  'not-started': { label: 'Not started', icon: AlertCircle, tone: 'gray' },
+};
+const CONTRACT_LABEL = {
+  'signed': { label: 'Signed', icon: Check, tone: 'green' },
+  'unsigned': { label: 'Unsigned', icon: AlertCircle, tone: 'red' },
+};
+const BILLING_LABEL = {
+  'active': { label: 'Active', icon: Check, tone: 'green' },
+  'awaiting-first-payment': { label: 'Awaiting first payment', icon: Hourglass, tone: 'yellow' },
+  'settled': { label: 'Settled', icon: Check, tone: 'green' },
+};
 
-export default function BrandsList() {
-  const { brands, events, campaigns } = useEventStore();
-
-  const enriched = useMemo(() => brands.map((brand) => {
-    const pool = selectBrandPool(events, brand.id);
-    const potential = pool.filter((p) => p.status === 'potential').length;
-    const qualified = pool.filter((p) => p.status === 'qualified').length;
-    const own = campaigns.filter((c) => c.brandHandle === brand.handle);
-    const liveCount = own.filter((c) => c.status === 'live').length;
-    const draftCount = own.filter((c) => c.status === 'draft').length;
-    const activity = brandActivity(brand, campaigns);
-    return {
-      brand, pool, potential, qualified, liveCount, draftCount, activity,
-    };
-  }), [brands, events, campaigns]);
-
-  const active = enriched.filter((e) => e.activity.kind === 'live' || e.activity.kind === 'draft');
-  const quiet = enriched.filter((e) => e.activity.kind === 'quiet' || e.activity.kind === 'none');
-
+function OperationalRow({ opState }) {
+  const items = [
+    { label: 'BRAND ONBOARDING', state: ONBOARDING_LABEL[opState.onboarding] },
+    { label: 'CONTRACT', state: CONTRACT_LABEL[opState.contract] },
+    { label: 'BILLING', state: BILLING_LABEL[opState.billing] },
+  ];
   return (
-    <div className="brands-list-page">
-      <header className="brands-list-header">
-        <h1>Brands</h1>
-        <span className="muted">
-          {active.length} active · {quiet.length} quiet
-        </span>
-      </header>
-
-      {active.length > 0 && (
-        <section className="brands-section">
-          <h2 className="brands-section-title">Active</h2>
-          <ul className="brands-list">
-            {active.map((e) => <BrandRow key={e.brand.id} {...e} />)}
-          </ul>
-        </section>
-      )}
-
-      {quiet.length > 0 && (
-        <section className="brands-section">
-          <h2 className="brands-section-title">Quiet</h2>
-          <ul className="brands-list">
-            {quiet.map((e) => <BrandRow key={e.brand.id} {...e} />)}
-          </ul>
-        </section>
-      )}
+    <div className="brand-op-row">
+      {items.map(({ label, state }) => (
+        <div key={label} className="brand-op-cell">
+          <div className="brand-op-cell-label">{label}</div>
+          <div className={`brand-op-cell-value tone-${state.tone}`}>
+            <state.icon size={13} />
+            <span>{state.label}</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function BrandRow({ brand, pool, potential, qualified, liveCount, draftCount, activity }) {
+function CampaignRow({ campaign, stageCounts, waitingState }) {
+  const STATUS = {
+    live: { label: 'live', color: 'green' },
+    draft: { label: 'draft', color: 'gray' },
+    completed: { label: 'completed', color: 'purple' },
+  };
+  const status = STATUS[campaign.status];
+
   return (
-    <li className={`brand-card ${activity.kind === 'live' ? 'is-live' : ''}`}>
-      <Link to={`/admin/brands/${brand.id}/pool`} className="brand-card-link">
-        <BrandLogo brand={brand} size={48} />
-        <div className="brand-card-body">
-          <div className="brand-card-name-row">
-            <h2>{brand.name}</h2>
-            <span className="brand-card-handle">{brand.handle}</span>
-            <Pill color={activity.color}>{activity.label}</Pill>
+    <div className="brand-campaign-row">
+      <div className="brand-campaign-row-left">
+        <span className="brand-campaign-row-name">{campaign.name}</span>
+        <Pill color={status.color}>{status.label}</Pill>
+        <span className="muted small">{stageCounts.total} loaded</span>
+      </div>
+      <div className="brand-campaign-row-stages">
+        {campaign.status === 'completed' ? (
+          <>
+            <Stage label="Completed" count={stageCounts.posted} tone="green" />
+            {stageCounts.declined > 0 && <Stage label="Declined" count={stageCounts.declined} tone="red" />}
+          </>
+        ) : (
+          <>
+            <Stage label="Invited" count={stageCounts.invited} tone="yellow" />
+            <Stage label="Accepted" count={stageCounts.accepted} tone="blue" />
+            {stageCounts.declined > 0 && <Stage label="Declined" count={stageCounts.declined} tone="red" />}
+            <Stage label="Prod Sel." count={stageCounts.productSelected + stageCounts.ordered} tone="blue" />
+            <Stage label="Content" count={stageCounts.contentSubmitted} tone="blue" />
+            <Stage label="Posted" count={stageCounts.posted} tone="green" />
+          </>
+        )}
+      </div>
+      <div className="brand-campaign-row-status">
+        <span className={`brand-campaign-waiting tone-${waitingState.color}`}>
+          {waitingState.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Stage({ label, count, tone }) {
+  return (
+    <span className={`brand-stage-chip tone-${tone} ${count === 0 ? 'zero' : ''}`}>
+      <span className="brand-stage-chip-label">{label}</span>
+      <span className="brand-stage-chip-count">{count}</span>
+    </span>
+  );
+}
+
+function BrandCard({ entry }) {
+  const {
+    brand, opState, status, brandCampaigns, pool, qualified, potential,
+    actionCategory, campaignBlocks, additionalAlerts,
+  } = entry;
+
+  return (
+    <li className={`brand-card-v2 accent-${actionCategory.accent}`}>
+      <Link to={`/admin/brands/${brand.id}/pool`} className="brand-card-v2-link">
+        <header className="brand-card-v2-head">
+          <BrandLogo brand={brand} size={48} />
+          <div className="brand-card-v2-titles">
+            <div className="brand-card-v2-name-row">
+              <span className="brand-card-v2-name">{brand.name}</span>
+              <span className="brand-card-v2-handle">{brand.handle}</span>
+            </div>
+            <div className="brand-card-v2-desc">{brand.description}</div>
           </div>
-          <div className="brand-card-desc">{brand.description}</div>
-          <div className="brand-card-stats">
-            <div className="brand-card-stat">
-              <span className="brand-card-stat-num">{pool.length}</span>
-              <span className="brand-card-stat-label">in pool</span>
-            </div>
-            <div className="brand-card-stat">
-              <span className="brand-card-stat-num">{qualified}</span>
-              <span className="brand-card-stat-label">qualified</span>
-            </div>
-            <div className="brand-card-stat">
-              <span className="brand-card-stat-num">{potential}</span>
-              <span className="brand-card-stat-label">potential</span>
-            </div>
-            <div className="brand-card-stat">
-              <span className="brand-card-stat-num">{liveCount}</span>
-              <span className="brand-card-stat-label">live campaigns</span>
-            </div>
-            {draftCount > 0 && (
-              <div className="brand-card-stat">
-                <span className="brand-card-stat-num">{draftCount}</span>
-                <span className="brand-card-stat-label">draft</span>
-              </div>
-            )}
+          <span className={`brand-status-pill tone-${status.color}`}>
+            {status.kind === 'onboarding' && <CircleDot size={12} />}
+            {status.kind === 'active' && <Check size={12} />}
+            {status.kind === 'completed' && <Check size={12} />}
+            {status.label}
+          </span>
+        </header>
+
+        <OperationalRow opState={opState} />
+
+        <div className="brand-pool-stats">
+          <div className="brand-pool-stat">
+            <span className="brand-pool-stat-num">{pool.length}</span>
+            <span className="brand-pool-stat-label">IN POOL</span>
+          </div>
+          <span className="brand-pool-divider">·</span>
+          <div className="brand-pool-stat">
+            <span className="brand-pool-stat-num">{qualified}</span>
+            <span className="brand-pool-stat-label">QUALIFIED</span>
+          </div>
+          <span className="brand-pool-divider">·</span>
+          <div className="brand-pool-stat">
+            <span className="brand-pool-stat-num">{potential}</span>
+            <span className="brand-pool-stat-label">POTENTIAL</span>
           </div>
         </div>
-        <div className="brand-card-arrow"><ArrowRight size={18} /></div>
+
+        {brandCampaigns.length > 0 && (
+          <div className="brand-campaigns-section">
+            <div className="brand-section-title">CAMPAIGNS</div>
+            {campaignBlocks.map((block) => (
+              <div key={block.campaign.id} className="brand-campaign-block">
+                <CampaignRow
+                  campaign={block.campaign}
+                  stageCounts={block.stageCounts}
+                  waitingState={block.waitingState}
+                />
+                {block.staleInvites.map((s) => (
+                  <div key={s.creator.id} className="brand-alert-banner warning">
+                    <AlertTriangle size={14} />
+                    <span>
+                      <strong>{s.creator.name}</strong> — Invited {s.days}d ago (stale).
+                      Brand needs to select creators.
+                    </span>
+                  </div>
+                ))}
+                {block.draftAction && (
+                  <div className="brand-alert-banner ops">
+                    <ListChecks size={14} />
+                    <span>
+                      <strong>Ops action:</strong> Load creators from pre-selection into campaign
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {additionalAlerts.map((alert, i) => (
+          <div key={i} className="brand-alert-banner warning">
+            <AlertTriangle size={14} />
+            <span>{alert}</span>
+          </div>
+        ))}
       </Link>
     </li>
+  );
+}
+
+export default function BrandsList() {
+  const { brands, events, campaigns, creators } = useEventStore();
+
+  const enriched = useMemo(() => brands.map((brand) => {
+    const opState = selectBrandOperationalState(brand, events);
+    const pool = selectBrandPool(events, brand.id);
+    const qualified = pool.filter((p) => p.status === 'qualified').length;
+    const potential = pool.filter((p) => p.status === 'potential').length;
+    const brandCampaigns = campaigns.filter((c) => c.brandHandle === brand.handle);
+    const status = selectBrandStatus(brand, opState, brandCampaigns);
+
+    // Per-campaign blocks
+    const campaignBlocks = brandCampaigns.map((c) => {
+      const stageCounts = selectCampaignStageCounts(events, c.id, campaigns);
+      const waitingState = selectCampaignWaitingState(stageCounts, c, opState);
+      const staleInvites = c.status === 'live'
+        ? selectStaleInvitesForCampaign(events, c.id, campaigns, creators)
+        : [];
+      const draftAction = c.status === 'draft' && stageCounts.total === 0
+        && opState.onboarding === 'complete' && opState.billing !== 'awaiting-first-payment';
+      return { campaign: c, stageCounts, waitingState, staleInvites, draftAction };
+    });
+
+    const actionCategory = selectBrandActionCategory(
+      brand, opState, brandCampaigns, pool, events, creators, campaigns,
+    );
+
+    // Additional brand-level alerts (not campaign-specific)
+    const additionalAlerts = [];
+    if (opState.onboarding !== 'complete' || opState.billing === 'awaiting-first-payment') {
+      additionalAlerts.push("Brand hasn't completed onboarding or paid first invoice. Follow up.");
+    }
+
+    return {
+      brand, opState, status, brandCampaigns, pool, qualified, potential,
+      actionCategory, campaignBlocks, additionalAlerts,
+    };
+  }), [brands, events, campaigns, creators]);
+
+  const needsAction = enriched.filter((e) => e.actionCategory.category === 'needs-action');
+  const onTrack = enriched.filter((e) => e.actionCategory.category === 'on-track');
+
+  return (
+    <div className="brands-list-page">
+      <header className="brands-list-header-v2">
+        <h1>Brands</h1>
+        <span className="muted">
+          {enriched.length} brands · {needsAction.length} need action · {onTrack.length} on track
+        </span>
+      </header>
+
+      <div className="brands-legend">
+        <span className="brands-legend-item"><span className="dot tone-orange" /> Needs action</span>
+        <span className="brands-legend-item"><span className="dot tone-green" /> On track</span>
+        <span className="brands-legend-item"><span className="dot tone-blue" /> Waiting on us</span>
+      </div>
+
+      {needsAction.length > 0 && (
+        <section className="brands-section-v2">
+          <h2 className="brands-section-title-v2">
+            <AlertTriangle size={14} /> NEEDS ACTION
+          </h2>
+          <ul className="brands-list-v2">
+            {needsAction.map((e) => <BrandCard key={e.brand.id} entry={e} />)}
+          </ul>
+        </section>
+      )}
+
+      {onTrack.length > 0 && (
+        <section className="brands-section-v2">
+          <h2 className="brands-section-title-v2">
+            <Check size={14} /> ON TRACK
+          </h2>
+          <ul className="brands-list-v2">
+            {onTrack.map((e) => <BrandCard key={e.brand.id} entry={e} />)}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }

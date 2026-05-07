@@ -17,6 +17,7 @@ export const SEED_CAMPAIGN_TEMPLATES = [
 ];
 
 export const SEED_CAMPAIGNS = [
+  // Aubree Says — live + draft
   {
     id: 'camp_western_cozy',
     name: 'The Western Cozy Set',
@@ -26,25 +27,47 @@ export const SEED_CAMPAIGNS = [
     productLabel: 'The Western Cozy Set',
   },
   {
+    id: 'camp_aubree_holiday',
+    name: 'Holiday Cozy Drop',
+    brandHandle: '@aubree-says',
+    brandName: 'Aubree Says',
+    status: 'draft',
+    productLabel: 'Holiday Cozy Bundle',
+  },
+
+  // Pikora — live
+  {
+    id: 'camp_pikora_bone_broth',
+    name: 'Instant Bone Broth Collection',
+    brandHandle: '@pikora',
+    brandName: 'Pikora',
+    status: 'live',
+    productLabel: 'Bone Broth Collection',
+  },
+  {
+    id: 'camp_glow_edit',
+    name: 'Glow Edit',
+    brandHandle: '@pikora',
+    brandName: 'Pikora',
+    status: 'completed',
+    productLabel: 'Collagen Glow Set',
+  },
+
+  // Home with Tay — completed
+  {
     id: 'camp_spring_refresh',
-    name: 'Spring Refresh Bundle',
+    name: 'Spring Home Refresh',
     brandHandle: '@homewith.tay',
     brandName: 'Home with Tay',
     status: 'completed',
     productLabel: 'Spring Refresh Bundle',
   },
-  {
-    id: 'camp_glow_edit',
-    name: 'Glow Edit',
-    brandHandle: '@cleanbeautyclub',
-    brandName: 'Clean Beauty Club',
-    status: 'completed',
-    productLabel: 'Glow Edit Box',
-  },
+
+  // Kinder Living — draft
   {
     id: 'camp_summer_mom',
-    name: 'Summer Mom Drop',
-    brandHandle: '@kinder.living',
+    name: 'First Campaign',
+    brandHandle: '@kinder-living',
     brandName: 'Kinder Living',
     status: 'draft',
     productLabel: 'Summer Mom Bundle',
