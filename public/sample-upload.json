@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Naomi Patel",
+    "handle": "@naomipatel",
+    "email": "naomi@naomipatel.com",
+    "phone": "+1 555 800 1010",
+    "followerCount": 8400,
+    "engagementRate": 9.6,
+    "categories": ["Beauty", "Lifestyle"],
+    "bio": "Beauty and lifestyle creator focused on routine-driven content."
+  },
+  {
+    "name": "Owen Chase",
+    "handle": "@owenchase",
+    "email": "owen@owenchase.com",
+    "phone": "+1 555 800 2020",
+    "followerCount": 4200,
+    "engagementRate": 11.2,
+    "categories": ["Lifestyle", "Travel"],
+    "bio": "Travel and lifestyle creator."
+  },
+  {
+    "name": "Quincy Lee",
+    "handle": "@quincyleeofficial",
+    "email": "quincy@quincylee.com",
+    "phone": "+1 555 800 3030",
+    "followerCount": 12100,
+    "engagementRate": 8.8,
+    "categories": ["Fashion"],
+    "bio": "Fashion-forward creator with a polished aesthetic."
+  },
+  {
+    "name": "Dani Brooks",
+    "handle": "@glowingwithdani",
+    "email": "dani@glowingwithdani.com",
+    "followerCount": 4200,
+    "engagementRate": 18.4,
+    "categories": ["Beauty", "Skincare"],
+    "bio": "Already in the portal — should be detected as a duplicate."
+  },
+  {
+    "name": "Ellie Stuart",
+    "handle": "@elliestu20",
+    "email": "ellie@elliestuart.com",
+    "followerCount": 6900,
+    "engagementRate": 11.8,
+    "categories": ["Fashion", "Activewear"],
+    "bio": "Already in the portal — should be detected as a duplicate."
+  }
+]

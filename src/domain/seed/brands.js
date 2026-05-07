@@ -1,0 +1,78 @@
+// Brands as first-class entities. Each brand has context, contacts, and is
+// the parent of one or more campaigns.
+
+export const SEED_BRANDS = [
+  {
+    id: 'brand_aubree_says',
+    name: 'Aubree Says',
+    handle: '@aubree-says',
+    logoColor: 'A',
+    provenance: 'Post-event outreach (Spring Creator Fair, Mar 2026)',
+    relationshipType: 'Direct',
+    contactName: 'Aubree Reilly',
+    contactEmail: 'aubree@aubreesays.com',
+    paid: false,
+    rate: null,
+    subscribedSince: '2026-03-12',
+    monthlyCampaigns: 1.5,
+    avgInviteToAccept: 0.62,
+    description: 'Cozy lifestyle brand — apparel + home + gifted-only campaigns.',
+  },
+  {
+    id: 'brand_home_with_tay',
+    name: 'Home with Tay',
+    handle: '@homewith.tay',
+    logoColor: 'B',
+    provenance: 'Direct inbound — founder DM\'d',
+    relationshipType: 'Direct',
+    contactName: 'Tay Morales',
+    contactEmail: 'tay@homewithtay.com',
+    paid: false,
+    rate: null,
+    subscribedSince: '2025-11-20',
+    monthlyCampaigns: 0.5,
+    avgInviteToAccept: 0.71,
+    description: 'Home-and-living brand running occasional gifted drops.',
+  },
+  {
+    id: 'brand_clean_beauty_club',
+    name: 'Clean Beauty Club',
+    handle: '@cleanbeautyclub',
+    logoColor: 'C',
+    provenance: 'Introduced by Bloom Agency (Dana Hartmann)',
+    relationshipType: 'Agency',
+    agency: 'Bloom Agency',
+    contactName: 'Dana Hartmann',
+    contactEmail: 'dana@bloomagency.co',
+    paid: false,
+    rate: null,
+    subscribedSince: '2026-01-08',
+    monthlyCampaigns: 1,
+    avgInviteToAccept: 0.55,
+    description: 'Clean-ingredient beauty brand, agency-managed.',
+  },
+  {
+    id: 'brand_kinder_living',
+    name: 'Kinder Living',
+    handle: '@kinder.living',
+    logoColor: 'D',
+    provenance: 'Demo with Tony · May 3, 2026',
+    relationshipType: 'Direct',
+    contactName: 'Mei Park',
+    contactEmail: 'mei@kinderliving.com',
+    paid: false,
+    rate: null,
+    subscribedSince: '2026-05-03',
+    monthlyCampaigns: null, // new
+    avgInviteToAccept: null,
+    description: 'New mom-life brand, brief expected this week.',
+  },
+];
+
+// Map campaign → brand (must align with SEED_CAMPAIGNS in campaigns.js)
+export const CAMPAIGN_TO_BRAND = {
+  camp_western_cozy: 'brand_aubree_says',
+  camp_spring_refresh: 'brand_home_with_tay',
+  camp_glow_edit: 'brand_clean_beauty_club',
+  camp_summer_mom: 'brand_kinder_living',
+};

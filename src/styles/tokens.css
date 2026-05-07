@@ -1,0 +1,89 @@
+:root {
+  /* Brand */
+  --color-brand: #AE94F9;
+  --color-brand-hover: #896BD9;
+  --color-brand-subtle: #EBE4FF;
+
+  /* Sidebar (matches admin screenshots) */
+  --color-sidebar-bg: #1A1B2E;
+  --color-sidebar-text: rgba(255,255,255,0.85);
+  --color-sidebar-text-muted: rgba(255,255,255,0.55);
+  --color-sidebar-active-bg: rgba(255,255,255,0.08);
+
+  /* Surface */
+  --color-bg: #F7F8FA;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F2F3F7;
+  --color-border: #E5E7EB;
+  --color-border-strong: #D1D5DB;
+
+  /* Text */
+  --color-text: #111827;
+  --color-text-muted: #6B7280;
+  --color-text-subtle: #9CA3AF;
+
+  /* Status pill colors (per PRD) */
+  --pill-yellow-bg: #FEF3C7;
+  --pill-yellow-text: #92400E;
+  --pill-yellow-border: #FDE68A;
+
+  --pill-green-bg: #DCFCE7;
+  --pill-green-text: #166534;
+  --pill-green-border: #BBF7D0;
+
+  --pill-blue-bg: #DBEAFE;
+  --pill-blue-text: #1E40AF;
+  --pill-blue-border: #BFDBFE;
+
+  --pill-red-bg: #FEE2E2;
+  --pill-red-text: #991B1B;
+  --pill-red-border: #FECACA;
+
+  --pill-gray-bg: #F3F4F6;
+  --pill-gray-text: #374151;
+  --pill-gray-border: #E5E7EB;
+
+  --pill-purple-bg: #EBE4FF;
+  --pill-purple-text: #4C1D95;
+  --pill-purple-border: #DDD6FE;
+
+  /* Stalled amber accent */
+  --color-amber: #B45309;
+  --color-amber-bg: #FEF3C7;
+
+  /* Button primary */
+  --btn-primary-bg: #2563EB;
+  --btn-primary-hover: #1D4ED8;
+  --btn-primary-text: #FFFFFF;
+
+  /* Spacing (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md: 0 4px 12px rgba(15,23,42,0.06);
+  --shadow-lg: 0 8px 24px rgba(15,23,42,0.08);
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --topbar-height: 64px;
+  --rail-width: 280px;
+
+  /* Type */
+  --font-sans: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
+}
