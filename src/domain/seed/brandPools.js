@@ -66,8 +66,12 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     return !isInPool;
   });
 
-  // Aubree-Says: 5 potential (recently sourced from Logan's tool) + 2 confirmed-not-qualified
-  const aubreePotentials = ['cr_g05', 'cr_g08', 'cr_g11', 'cr_g14', 'cr_g17'];
+  // Aubree-Says: mix of portal states across the potentials so the
+  // gray/yellow/green pills all show up. Recently sourced from Logan's tool.
+  //   cr_g40, cr_g42 → "Not in Creator Program" (gray, no-campaign-fresh)
+  //   cr_g29, cr_g33 → "Invited to Creator Program" (yellow)
+  //   cr_g17 → "In Creator Program" (green, in-portal scenario)
+  const aubreePotentials = ['cr_g40', 'cr_g42', 'cr_g29', 'cr_g33', 'cr_g17'];
   for (const cid of aubreePotentials) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
@@ -92,8 +96,8 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     }));
   }
 
-  // Home with Tay: 3 potential
-  const tayPotentials = ['cr_g20', 'cr_g23', 'cr_g26'];
+  // Home with Tay: 1 gray + 1 yellow + 2 green for variety
+  const tayPotentials = ['cr_g43', 'cr_g30', 'cr_g20', 'cr_g23'];
   for (const cid of tayPotentials) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
@@ -105,8 +109,8 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     }));
   }
 
-  // Clean Beauty Club: 4 potential
-  const cleanPotentials = ['cr_g29', 'cr_g32', 'cr_g35', 'cr_g38'];
+  // Pikora: 1 gray + 2 yellow + 1 green
+  const cleanPotentials = ['cr_g41', 'cr_g32', 'cr_g35', 'cr_g28'];
   for (const cid of cleanPotentials) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
@@ -118,8 +122,9 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     }));
   }
 
-  // Kinder Living: 6 potential (just sourced)
-  const kinderPotentials = ['cr_sage', 'cr_haley', 'cr_g02', 'cr_g05', 'cr_g08', 'cr_g41'];
+  // Kinder Living: 6 potential — already has variety (sage green + haley yellow stalled + g41 gray)
+  // Adjust: replace g41 (now in Pikora) with g34 yellow, and add g38 yellow stalled
+  const kinderPotentials = ['cr_sage', 'cr_haley', 'cr_g02', 'cr_g34', 'cr_g38', 'cr_g44'];
   for (const cid of kinderPotentials) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
