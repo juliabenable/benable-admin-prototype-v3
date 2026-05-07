@@ -1,5 +1,6 @@
 import { ChevronRight, AlertCircle, Tag as TagIcon } from 'lucide-react';
 import Avatar from '../../components/Avatar.jsx';
+import CreatorIdentity from '../../components/CreatorIdentity.jsx';
 import Pill from '../../components/Pill.jsx';
 
 function formatFollowers(n) {
@@ -71,14 +72,13 @@ export default function RosterList({
             onClick={() => onSelect(creator.id)}
           >
             <span className="roster-creator">
-              <Avatar creator={creator} size={40} />
-              <span className="roster-creator-text">
-                <span className="roster-creator-name">{creator.name}</span>
-                <span className="roster-creator-meta">
-                  <span className="roster-creator-handle">{creator.handle}</span>
-                  <span className="roster-creator-followers">· {formatFollowers(creator.followerCount)}</span>
-                </span>
-              </span>
+              <CreatorIdentity
+                creator={creator}
+                size={40}
+                rightOfName={
+                  <span className="roster-creator-followers muted small">· {formatFollowers(creator.followerCount)}</span>
+                }
+              />
             </span>
             <span>
               <Pill color={status.color}>{status.label}</Pill>

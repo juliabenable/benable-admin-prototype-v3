@@ -9,6 +9,7 @@ import {
 import { CAMPAIGN_TO_BRAND } from '../../domain/seed/brands.js';
 import { useToast } from '../../components/Toast.jsx';
 import Avatar from '../../components/Avatar.jsx';
+import CreatorIdentity from '../../components/CreatorIdentity.jsx';
 import Pill from '../../components/Pill.jsx';
 import ProfilePanel from '../Creators/ProfilePanel.jsx';
 import BulkInviteDialog from './BulkInviteDialog.jsx';
@@ -268,42 +269,34 @@ export default function BrandPool() {
                 className="bp-creator-cell"
                 onClick={() => setOpenProfile(creator.id)}
               >
-                <Avatar creator={creator} size={32} />
-                <span>
-                  <span className="bp-creator-name">
-                    {creator.name}
-                    {/* Overall score pill inline */}
-                    {(() => {
-                      const e = enriched.find((x) => x.creator.id === creator.id);
-                      if (!e) return null;
-                      if (e.scores.overall != null) {
-                        return (
-                          <span className={`overall-score-pill small tone-${overallScoreColor(e.scores.overall)}`}
-                            title={e.scores.overallMode === 'composite'
-                              ? `R ${e.scores.reliability?.toFixed(1)} · Q ${e.scores.quality?.toFixed(1)}`
-                              : 'Reliability only'}>
-                            {e.scores.overall.toFixed(1)}
-                          </span>
-                        );
-                      }
-                      if (e.scores.isNew) return <span className="overall-score-pill small tone-gray">New</span>;
-                      return null;
-                    })()}
-                    {/* Past decline */}
-                    {(() => {
-                      const declines = events.filter((ev) =>
-                        ev.creatorId === creator.id && ev.type === 'CAMPAIGN_DECLINED',
-                      );
-                      const past = declines.find((d) => d.campaignId && CAMPAIGN_TO_BRAND[d.campaignId] === brandId);
-                      return past ? (
+                {(() => {
+                  const e = enriched.find((x) => x.creator.id === creator.id);
+                  const declines = events.filter((ev) =>
+                    ev.creatorId === creator.id && ev.type === 'CAMPAIGN_DECLINED',
+                  );
+                  const past = declines.find((d) => d.campaignId && CAMPAIGN_TO_BRAND[d.campaignId] === brandId);
+                  const extras = (
+                    <>
+                      {e?.scores.overall != null && (
+                        <span className={`overall-score-pill small tone-${overallScoreColor(e.scores.overall)}`}
+                          title={e.scores.overallMode === 'composite'
+                            ? `R ${e.scores.reliability?.toFixed(1)} · Q ${e.scores.quality?.toFixed(1)}`
+                            : 'Reliability only'}>
+                          {e.scores.overall.toFixed(1)}
+                        </span>
+                      )}
+                      {e?.scores.overall == null && e?.scores.isNew && (
+                        <span className="overall-score-pill small tone-gray">New</span>
+                      )}
+                      {past && (
                         <span className="past-decline-flag" title={`Declined: ${past.payload?.reason ?? 'no reason'}`}>
                           <AlertCircle size={11} /> Past decline
                         </span>
-                      ) : null;
-                    })()}
-                  </span>
-                  <span className="bp-creator-handle">{creator.handle}</span>
-                </span>
+                      )}
+                    </>
+                  );
+                  return <CreatorIdentity creator={creator} compact rightOfName={extras} />;
+                })()}
               </button>
               <span>
                 <Pill color={portalStatus.color}>{portalStatus.label}</Pill>
@@ -365,11 +358,7 @@ export default function BrandPool() {
               <div key={creator.id} className="bp-row archived">
                 <span className="bp-col-checkbox" />
                 <button type="button" className="bp-creator-cell" onClick={() => setOpenProfile(creator.id)}>
-                  <Avatar creator={creator} size={32} />
-                  <span>
-                    <span className="bp-creator-name">{creator.name}</span>
-                    <span className="bp-creator-handle">{creator.handle}</span>
-                  </span>
+                  <CreatorIdentity creator={creator} compact />
                 </button>
                 <span><Pill color={portalStatus.color}>{portalStatus.label}</Pill></span>
                 <span>

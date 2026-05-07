@@ -10,6 +10,7 @@ import {
 import { CAMPAIGN_TO_BRAND } from '../../domain/seed/brands.js';
 import { EVENT_TYPES as E } from '../../domain/events.js';
 import Avatar from '../../components/Avatar.jsx';
+import CreatorIdentity from '../../components/CreatorIdentity.jsx';
 
 const BUCKET_LABEL = { high: 'High fit', medium: 'Medium fit', low: 'Low fit' };
 const BUCKET_TONE = { high: 'green', medium: 'yellow', low: 'red' };
@@ -149,22 +150,25 @@ export default function BriefCheckPanel({ campaign, brief, brand, onClose }) {
         <ul className="brief-check-list">
           {scored.map(({ creator, fit, bucket, reasons, breakdown, pastDecline, incompleteOnboarding }) => (
             <li key={creator.id} className={`brief-check-row tone-${BUCKET_TONE[bucket]}`}>
-              <Avatar creator={creator} size={32} />
               <div className="brief-check-row-meta">
-                <div className="brief-check-row-name">
-                  {creator.name}
-                  {pastDecline && (
-                    <span className="past-decline-flag" title={`Declined ${pastDecline.campaign?.name}: ${pastDecline.reason}`}>
-                      <AlertCircle size={11} /> Past decline
-                    </span>
-                  )}
-                  {incompleteOnboarding && (
-                    <span className="incomplete-flag" title="Onboarding gifted/small-brand questions unanswered">
-                      <AlertTriangle size={11} /> Incomplete
-                    </span>
-                  )}
-                </div>
-                <div className="brief-check-row-handle muted small">{creator.handle}</div>
+                <CreatorIdentity
+                  creator={creator}
+                  compact
+                  rightOfName={
+                    <>
+                      {pastDecline && (
+                        <span className="past-decline-flag" title={`Declined ${pastDecline.campaign?.name}: ${pastDecline.reason}`}>
+                          <AlertCircle size={11} /> Past decline
+                        </span>
+                      )}
+                      {incompleteOnboarding && (
+                        <span className="incomplete-flag" title="Onboarding gifted/small-brand questions unanswered">
+                          <AlertTriangle size={11} /> Incomplete
+                        </span>
+                      )}
+                    </>
+                  }
+                />
                 <FitBar fit={fit} bucket={bucket} />
                 <div className="brief-check-row-reasons">
                   {reasons.slice(0, 4).map((r, i) => <span key={i} className="brief-check-reason">{r}</span>)}
@@ -184,20 +188,23 @@ export default function BriefCheckPanel({ campaign, brief, brand, onClose }) {
             <ul className="brief-check-list">
               {replacements.map(({ creator, fit, bucket, reasons, source, pastDecline }) => (
                 <li key={creator.id} className={`brief-check-row tone-${BUCKET_TONE[bucket]}`}>
-                  <Avatar creator={creator} size={32} />
                   <div className="brief-check-row-meta">
-                    <div className="brief-check-row-name">
-                      {creator.name}
-                      <span className="brief-check-source">
-                        {source === 'brand-pool' ? `from ${brand.name} pool` : 'from general pool'}
-                      </span>
-                      {pastDecline && (
-                        <span className="past-decline-flag" title={`Declined ${pastDecline.campaign?.name}: ${pastDecline.reason}`}>
-                          <AlertCircle size={11} /> Past decline
-                        </span>
-                      )}
-                    </div>
-                    <div className="brief-check-row-handle muted small">{creator.handle}</div>
+                    <CreatorIdentity
+                      creator={creator}
+                      compact
+                      rightOfName={
+                        <>
+                          <span className="brief-check-source">
+                            {source === 'brand-pool' ? `from ${brand.name} pool` : 'from general pool'}
+                          </span>
+                          {pastDecline && (
+                            <span className="past-decline-flag" title={`Declined ${pastDecline.campaign?.name}: ${pastDecline.reason}`}>
+                              <AlertCircle size={11} /> Past decline
+                            </span>
+                          )}
+                        </>
+                      }
+                    />
                     <FitBar fit={fit} bucket={bucket} />
                     <div className="brief-check-row-reasons">
                       {reasons.slice(0, 3).map((r, i) => <span key={i} className="brief-check-reason">{r}</span>)}

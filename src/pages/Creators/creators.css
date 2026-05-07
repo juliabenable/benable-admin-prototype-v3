@@ -308,6 +308,11 @@
   font-weight: 700;
   color: var(--color-text);
 }
+.social-icon-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .profile-actions {
   display: flex;
