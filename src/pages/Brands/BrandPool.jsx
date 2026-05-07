@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Upload, ArrowRight, AlertCircle, Send, ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { Upload, ArrowRight, AlertCircle, Send, ChevronDown, ChevronRight, Plus, Users } from 'lucide-react';
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
   selectBrandPool, selectCreatorStatus, selectDaysInStage, shouldAutoArchive,
@@ -15,6 +15,7 @@ import PortalStatusPill from '../../components/PortalStatusPill.jsx';
 import ProfilePanel from '../Creators/ProfilePanel.jsx';
 import BulkInviteDialog from './BulkInviteDialog.jsx';
 import BulkAssignDialog from './BulkAssignDialog.jsx';
+import BulkAssignToPoolDialog from './BulkAssignToPoolDialog.jsx';
 import BrandPoolUploadDialog from './BrandPoolUploadDialog.jsx';
 import ArchiveDialog from './ArchiveDialog.jsx';
 
@@ -61,6 +62,7 @@ export default function BrandPool() {
   const [archiveTarget, setArchiveTarget] = useState(null);
   const [archiveExpanded, setArchiveExpanded] = useState(false);
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+  const [bulkAssignPoolOpen, setBulkAssignPoolOpen] = useState(false);
 
   // Pool members enriched with creator + portal status + brand-pool status + scores
   const enriched = useMemo(() => {
@@ -245,6 +247,15 @@ export default function BrandPool() {
             title="Send portal invites to all selected 'Not in Program' creators"
           >
             <Send size={13} /> Invite ({selectedCreators.filter((e) => e.portalStatus.kind === 'NOT_IN_PROGRAM').length})
+          </button>
+          <button
+            type="button"
+            className="btn secondary small"
+            disabled={selectedIds.size === 0}
+            onClick={() => setBulkAssignPoolOpen(true)}
+            title="Add all selected to another brand's pool"
+          >
+            <Users size={13} /> Assign to Pool ({selectedIds.size})
           </button>
           <button
             type="button"
@@ -493,6 +504,18 @@ export default function BrandPool() {
           onClose={() => setBulkAssignOpen(false)}
           onAssigned={() => {
             setBulkAssignOpen(false);
+            clearSelection();
+          }}
+        />
+      )}
+
+      {bulkAssignPoolOpen && (
+        <BulkAssignToPoolDialog
+          sourceBrand={brand}
+          creators={selectedCreators.map((e) => e.creator)}
+          onClose={() => setBulkAssignPoolOpen(false)}
+          onAssigned={() => {
+            setBulkAssignPoolOpen(false);
             clearSelection();
           }}
         />
