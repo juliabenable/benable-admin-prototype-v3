@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
-import { ArrowRight, Sparkles, Star } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowRight, Sparkles, Star, MessageCircle } from 'lucide-react';
 import { useEventStore } from '../../../store/useEventStore.jsx';
 import {
   selectCreatorCampaigns, selectActivityFeed, selectCreatorBrandPools,
   TODAY_ISO,
 } from '../../../domain/selectors.js';
+import { useToast } from '../../../components/Toast.jsx';
 import Pill from '../../../components/Pill.jsx';
-import { formatRelative, formatFullDate } from '../../../components/RelativeTime.jsx';
+import { formatRelative, formatFullDate, formatDateTimeShort } from '../../../components/RelativeTime.jsx';
 import { EVENT_TYPES as E } from '../../../domain/events.js';
 import BrandLogo from '../../Brands/BrandLogo.jsx';
 
@@ -34,7 +35,8 @@ function timeInStage(iso) {
 }
 
 export default function OverviewTab({ creator, onSwitchTab }) {
-  const { events, campaigns, brands } = useEventStore();
+  const { events, campaigns, brands, appendEvent } = useEventStore();
+  const toast = useToast();
 
   const creatorCampaigns = useMemo(
     () => selectCreatorCampaigns(events, creator.id, campaigns),
@@ -66,6 +68,28 @@ export default function OverviewTab({ creator, onSwitchTab }) {
     }
     return m;
   }, [events, creator.id]);
+
+  // ── Notes ──
+  const notes = useMemo(
+    () => selectActivityFeed(events, creator.id).filter((e) => e.type === E.NOTE_ADDED),
+    [events, creator.id],
+  );
+  const [noteBody, setNoteBody] = useState('');
+  const [noteFocused, setNoteFocused] = useState(false);
+
+  function saveNote() {
+    const trimmed = noteBody.trim();
+    if (!trimmed) return;
+    appendEvent({
+      type: E.NOTE_ADDED,
+      creatorId: creator.id,
+      actor: { kind: 'ops', name: 'Julia' },
+      payload: { body: trimmed },
+    });
+    setNoteBody('');
+    setNoteFocused(false);
+    toast('Note added');
+  }
 
   return (
     <div className="overview-tab">
@@ -157,7 +181,7 @@ export default function OverviewTab({ creator, onSwitchTab }) {
               View all <ArrowRight size={11} />
             </button>
           )}
-        </div>
+        </div>{/* recent activity body unchanged below */}
         {recentActivity.length === 0 ? (
           <div className="overview-empty">No activity yet.</div>
         ) : (
@@ -185,6 +209,57 @@ export default function OverviewTab({ creator, onSwitchTab }) {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </section>
+
+      {/* ─── NOTES (at bottom of overview, per Katie May 7) ─── */}
+      <section className="overview-section">
+        <div className="overview-section-head">
+          <h3><MessageCircle size={12} style={{ verticalAlign: '-2px', marginRight: 4 }} />Notes ({notes.length})</h3>
+        </div>
+
+        {/* Compact input row — expands when focused or has content */}
+        <div className={`overview-note-compose ${(noteFocused || noteBody) ? 'expanded' : ''}`}>
+          {(noteFocused || noteBody) ? (
+            <textarea
+              autoFocus
+              className="textarea"
+              placeholder="Add a note..."
+              rows={3}
+              value={noteBody}
+              onChange={(e) => setNoteBody(e.target.value)}
+              onBlur={() => { if (!noteBody) setNoteFocused(false); }}
+            />
+          ) : (
+            <input
+              className="input"
+              placeholder="Add a note..."
+              onFocus={() => setNoteFocused(true)}
+              readOnly
+            />
+          )}
+          <button
+            type="button"
+            className="btn primary small"
+            disabled={!noteBody.trim()}
+            onClick={saveNote}
+          >
+            Add
+          </button>
+        </div>
+
+        {notes.length > 0 && (
+          <ul className="overview-notes-list">
+            {notes.map((n) => (
+              <li key={n.id} className="overview-note-card">
+                <div className="overview-note-meta">
+                  <span className="overview-note-author">{n.actor?.name ?? 'Ops'}</span>
+                  <span className="muted small">{formatDateTimeShort(n.timestamp)}</span>
+                </div>
+                <div className="overview-note-body">{n.payload?.body}</div>
+              </li>
+            ))}
           </ul>
         )}
       </section>

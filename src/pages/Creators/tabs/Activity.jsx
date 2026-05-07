@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import {
   UserPlus, Mail, Eye, X, PlayCircle, CheckCircle2, AlertCircle, ListChecks,
   ShoppingCart, Truck, Package, Send, Edit3, Globe, Star,
   ThumbsUp, ThumbsDown, Eye as EyeIcon, Clock, StickyNote,
 } from 'lucide-react';
 import { useEventStore } from '../../../store/useEventStore.jsx';
-import { useToast } from '../../../components/Toast.jsx';
 import { selectActivityFeed } from '../../../domain/selectors.js';
-import { formatRelative, formatFullDate } from '../../../components/RelativeTime.jsx';
+import { formatRelative, formatFullDate, formatDateTime } from '../../../components/RelativeTime.jsx';
 import { EVENT_TYPES as E } from '../../../domain/events.js';
 
 // icon + dot color per event type
@@ -128,16 +127,6 @@ function actorTone(actor, fallbackTone) {
   return fallbackTone;
 }
 
-// Format date + time explicitly (replaces relative-only)
-function formatDateTime(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    month: 'short', day: 'numeric',
-    hour: 'numeric', minute: '2-digit',
-  });
-}
-
 const ACTOR_LABEL = {
   ops: 'Ops',
   brand: 'Brand',
@@ -223,47 +212,14 @@ function eventSubline(event, campaigns, brands = []) {
   }
 }
 
-export default function ActivityTab({ creator, focusNoteKey }) {
-  const { events, campaigns, brands, appendEvent } = useEventStore();
-  const toast = useToast();
+export default function ActivityTab({ creator }) {
+  const { events, campaigns, brands } = useEventStore();
+  // Notes composer moved to Overview tab per Katie May 7. Activity tab is
+  // now read-only timeline; notes still appear inline as NOTE_ADDED entries.
   const feed = useMemo(() => selectActivityFeed(events, creator.id), [events, creator.id]);
-  const [noteBody, setNoteBody] = useState('');
-  const noteRef = useRef(null);
-
-  useEffect(() => {
-    if (focusNoteKey > 0) noteRef.current?.focus();
-  }, [focusNoteKey]);
-
-  function saveNote() {
-    const trimmed = noteBody.trim();
-    if (!trimmed) return;
-    appendEvent({
-      type: E.NOTE_ADDED,
-      creatorId: creator.id,
-      actor: { kind: 'ops', name: 'Julia' },
-      payload: { body: trimmed },
-    });
-    setNoteBody('');
-    toast('Note added');
-  }
 
   return (
     <div className="activity-tab">
-      <div className="note-compose">
-        <textarea
-          ref={noteRef}
-          className="textarea"
-          placeholder="Add a note about this creator…"
-          rows={2}
-          value={noteBody}
-          onChange={(e) => setNoteBody(e.target.value)}
-        />
-        <div className="row" style={{ justifyContent: 'flex-end', marginTop: 8 }}>
-          <button type="button" className="btn primary small" onClick={saveNote} disabled={!noteBody.trim()}>
-            Save note
-          </button>
-        </div>
-      </div>
 
       {feed.length === 0 ? (
         <div className="tab-empty">No activity yet.</div>
