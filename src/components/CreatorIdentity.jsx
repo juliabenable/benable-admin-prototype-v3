@@ -1,6 +1,6 @@
 import { Mail, Phone } from 'lucide-react';
 import Avatar from './Avatar.jsx';
-import { InstagramIcon, TikTokIcon } from './SocialIcons.jsx';
+import { InstagramIcon, TikTokIcon, BenableIcon } from './SocialIcons.jsx';
 
 /**
  * Standard inline creator identity row used everywhere a creator is listed:
@@ -22,6 +22,18 @@ export default function CreatorIdentity({
       <div className="creator-identity-text">
         <div className="creator-identity-line1">
           <span className="creator-identity-name">{creator.name}</span>
+          {creator.benableHandle && (
+            <a
+              href={`https://benable.com/${creator.benableHandle}`}
+              target="_blank"
+              rel="noreferrer"
+              className="creator-identity-icon"
+              title={`benable.com/${creator.benableHandle}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <BenableIcon size={compact ? 12 : 14} />
+            </a>
+          )}
           {creator.socials?.includes('instagram') && (
             <span className="creator-identity-icon" title="Instagram">
               <InstagramIcon size={compact ? 12 : 14} />

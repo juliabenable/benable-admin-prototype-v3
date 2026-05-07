@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Upload, ArrowRight, AlertCircle, Send, ChevronDown, ChevronRight } from 'lucide-react';
+import { Upload, ArrowRight, AlertCircle, Send, ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
   selectBrandPool, selectCreatorStatus, selectDaysInStage, shouldAutoArchive,
@@ -13,6 +13,7 @@ import CreatorIdentity from '../../components/CreatorIdentity.jsx';
 import Pill from '../../components/Pill.jsx';
 import ProfilePanel from '../Creators/ProfilePanel.jsx';
 import BulkInviteDialog from './BulkInviteDialog.jsx';
+import BulkAssignDialog from './BulkAssignDialog.jsx';
 import BrandPoolUploadDialog from './BrandPoolUploadDialog.jsx';
 import ArchiveDialog from './ArchiveDialog.jsx';
 
@@ -58,6 +59,7 @@ export default function BrandPool() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState(null);
   const [archiveExpanded, setArchiveExpanded] = useState(false);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
 
   // Pool members enriched with creator + portal status + brand-pool status + scores
   const enriched = useMemo(() => {
@@ -127,6 +129,13 @@ export default function BrandPool() {
     () => enriched.filter((e) => e.portalStatus.kind === 'NOT_IN_PROGRAM'),
     [enriched],
   );
+  // Selection-derived eligibility: ops can bulk-assign Qualified creators to a campaign
+  const selectedCreators = useMemo(
+    () => enriched.filter((e) => selectedIds.has(e.creator.id)),
+    [enriched, selectedIds],
+  );
+  const allSelectedQualified = selectedCreators.length > 0
+    && selectedCreators.every((e) => e.brandPool.status === 'qualified');
 
   function toggleSelect(creatorId) {
     setSelectedIds((prev) => {
@@ -211,9 +220,9 @@ export default function BrandPool() {
       </div>
 
       {/* Bulk action bar — sticky at top of list when selection present */}
-      {(filter === 'all' || filter === 'potential') && inviteEligible.length > 0 && (
-        <div className="bp-bulk-bar">
-          <div className="row gap-3">
+      <div className="bp-bulk-bar">
+        <div className="row gap-3">
+          {inviteEligible.length > 0 && (
             <button
               type="button"
               className="btn ghost small"
@@ -221,18 +230,37 @@ export default function BrandPool() {
             >
               {selectedIds.size === inviteEligible.length ? 'Clear selection' : `Select all "Not in Program" (${inviteEligible.length})`}
             </button>
-            <span className="muted small">
-              {selectedIds.size} selected
-            </span>
-          </div>
+          )}
+          <span className="muted small">
+            {selectedIds.size} selected
+          </span>
+        </div>
+        <div className="row gap-2">
+          <button
+            type="button"
+            className="btn secondary small"
+            disabled={selectedIds.size === 0 || !inviteEligible.some((e) => selectedIds.has(e.creator.id))}
+            onClick={() => setBulkInviteOpen(true)}
+            title="Send portal invites to all selected 'Not in Program' creators"
+          >
+            <Send size={13} /> Invite ({selectedCreators.filter((e) => e.portalStatus.kind === 'NOT_IN_PROGRAM').length})
+          </button>
           <button
             type="button"
             className="btn primary small"
-            disabled={selectedIds.size === 0}
-            onClick={() => setBulkInviteOpen(true)}
+            disabled={!allSelectedQualified}
+            onClick={() => setBulkAssignOpen(true)}
+            title={allSelectedQualified
+              ? 'Assign all selected to a campaign'
+              : 'Bulk-assign requires all selected creators to be Qualified'}
           >
-            <Send size={13} /> Invite to Creator Program ({selectedIds.size})
+            <Plus size={13} /> Assign to Campaign ({selectedIds.size})
           </button>
+        </div>
+      </div>
+      {selectedIds.size > 0 && !allSelectedQualified && selectedCreators.some((e) => e.brandPool.status !== 'qualified') && (
+        <div className="muted small" style={{ marginTop: -8, marginBottom: 8 }}>
+          Tip: only Qualified creators can be bulk-assigned to a campaign.
         </div>
       )}
 
@@ -255,14 +283,12 @@ export default function BrandPool() {
           return (
             <div key={creator.id} className={`bp-row ${autoArchiveCandidate ? 'auto-archive-flag' : ''}`}>
               <span className="bp-col-checkbox">
-                {isGray && (
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(creator.id)}
-                    onChange={() => toggleSelect(creator.id)}
-                    aria-label={`Select ${creator.name}`}
-                  />
-                )}
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(creator.id)}
+                  onChange={() => toggleSelect(creator.id)}
+                  aria-label={`Select ${creator.name}`}
+                />
               </span>
               <button
                 type="button"
@@ -307,9 +333,15 @@ export default function BrandPool() {
                 )}
               </span>
               <span>
-                {brandPool.status === 'qualified' && <Pill color="green">Qualified</Pill>}
-                {brandPool.status === 'confirmed' && <Pill color="blue">Confirmed</Pill>}
-                {brandPool.status === 'potential' && <Pill color="purple">Potential</Pill>}
+                {brandPool.status === 'qualified' && (
+                  <Pill color="green" title={`Confirmed fit for ${brand.name}: socials reviewed, onboarding answers reviewed, ready to be assigned to a campaign`}>Qualified</Pill>
+                )}
+                {brandPool.status === 'confirmed' && (
+                  <Pill color="blue" title={`Preferences reviewed for ${brand.name}; awaiting full vetting / AI card before assigning`}>Confirmed</Pill>
+                )}
+                {brandPool.status === 'potential' && (
+                  <Pill color="purple" title={`In ${brand.name} pool but not yet reviewed — Katie/Des hasn't checked their socials or onboarding answers for ${brand.name} fit`}>Potential</Pill>
+                )}
               </span>
               <span className="bp-row-actions">
                 {brandPool.status === 'potential' && (
@@ -450,6 +482,18 @@ export default function BrandPool() {
         <BrandPoolUploadDialog
           brand={brand}
           onClose={() => setUploadOpen(false)}
+        />
+      )}
+
+      {bulkAssignOpen && (
+        <BulkAssignDialog
+          brand={brand}
+          creators={selectedCreators.map((e) => e.creator)}
+          onClose={() => setBulkAssignOpen(false)}
+          onAssigned={() => {
+            setBulkAssignOpen(false);
+            clearSelection();
+          }}
         />
       )}
 

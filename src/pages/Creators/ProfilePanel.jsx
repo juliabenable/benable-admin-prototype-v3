@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import Avatar from '../../components/Avatar.jsx';
 import Pill from '../../components/Pill.jsx';
-import { InstagramIcon, TikTokIcon } from '../../components/SocialIcons.jsx';
+import { InstagramIcon, TikTokIcon, BenableIcon } from '../../components/SocialIcons.jsx';
 import ActivityTab from './tabs/Activity.jsx';
 import CampaignsTab from './tabs/Campaigns.jsx';
 import PreferencesTab from './tabs/Preferences.jsx';
@@ -122,6 +122,17 @@ export default function ProfilePanel({ entry, onClose }) {
               <span className="row gap-1"><Mail size={13} /> {creator.email}</span>
               {creator.phone && <span className="row gap-1"><Phone size={13} /> {creator.phone}</span>}
               {creator.locationCity && <span className="row gap-1"><MapPin size={13} /> {creator.locationCity}</span>}
+              {creator.benableHandle && (
+                <a
+                  href={`https://benable.com/${creator.benableHandle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="social-icon-svg"
+                  title={`benable.com/${creator.benableHandle}`}
+                >
+                  <BenableIcon size={16} />
+                </a>
+              )}
               {creator.socials?.includes('instagram') && (
                 <span className="social-icon-svg" title="Instagram"><InstagramIcon size={16} /></span>
               )}

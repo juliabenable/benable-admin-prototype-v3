@@ -59,12 +59,22 @@ const EVENT_META = {
   [E.POST_COMPLIANCE_LOGGED]: { label: 'Post compliance logged', icon: CheckCircle2, tone: 'green' },
 };
 
+// Helper: consistent brand · campaign formatting for ANY campaign-scoped event.
+// Per Katie's feedback (May 7): every activity entry needs both brand + campaign.
+function brandCampaignContext(event, campaigns, brands) {
+  const campaign = event.campaignId ? campaigns.find((c) => c.id === event.campaignId) : null;
+  if (!campaign) return '';
+  const brandHandle = campaign.brandHandle;
+  return `${brandHandle} · ${campaign.name}`;
+}
+
 function eventSubline(event, campaigns, brands = []) {
   const campaign = event.campaignId ? campaigns.find((c) => c.id === event.campaignId) : null;
   const brand = event.brandId ? brands.find((b) => b.id === event.brandId) : null;
   const actorName = event.actor?.name;
+  const ctx = brandCampaignContext(event, campaigns, brands);
 
-  // Brand-pool events
+  // Brand-pool events (no campaign — just brand)
   if (event.type === E.BRAND_POOL_ADDED || event.type === E.BRAND_POOL_CONFIRMED
       || event.type === E.BRAND_POOL_QUALIFIED || event.type === E.BRAND_POOL_UNARCHIVED) {
     return brand ? `${brand.name} pool · by ${actorName ?? 'ops'}` : '';
@@ -73,19 +83,29 @@ function eventSubline(event, campaigns, brands = []) {
     const reason = event.payload?.reason ? ` — ${event.payload.reason}` : '';
     return brand ? `${brand.name}${reason} · by ${actorName ?? 'ops'}` : '';
   }
+
+  // Campaign-scoped events: ALWAYS lead with brand · campaign, optionally append payload detail
   if (event.type === E.AI_CARD_GENERATED || event.type === E.AI_CARD_REVIEWED || event.type === E.AI_CARD_REWORKED) {
-    return campaign ? `${campaign.brandHandle} · ${campaign.name}` : '';
+    return ctx;
   }
   if (event.type === E.CAMPAIGN_RATED) {
     const rating = event.payload?.rating;
-    return campaign
-      ? `${rating ? `${rating}/10 — ` : ''}${campaign.brandHandle} · ${campaign.name}`
-      : '';
+    return ctx ? `${rating ? `${rating}/10 — ` : ''}${ctx}` : '';
   }
   if (event.type === E.POST_COMPLIANCE_LOGGED) {
     const posted = event.payload?.posted ? 'Posted' : 'Did not post';
     const onTime = event.payload?.on_time ? 'on time' : 'late';
-    return `${posted} ${onTime}${campaign ? ` · ${campaign.name}` : ''}`;
+    return `${posted} ${onTime}${ctx ? ` · ${ctx}` : ''}`;
+  }
+  if (event.type === E.CONTENT_LIVE) {
+    return ctx;
+  }
+  if (event.type === E.CONTENT_SUBMITTED) {
+    return ctx;
+  }
+  if (event.type === E.PRODUCT_SHIPPED) {
+    const tracking = event.payload?.tracking ? ` · Tracking #${event.payload.tracking}` : '';
+    return `${ctx}${tracking}`;
   }
 
   switch (event.type) {
@@ -102,18 +122,8 @@ function eventSubline(event, campaigns, brands = []) {
     }
     case E.NOTE_ADDED:
       return event.payload?.body ?? '';
+    // All other campaign-scoped events: consistent brand · campaign
     case E.CAMPAIGN_ACCEPTED:
-      return campaign ? `${campaign.brandHandle} · ${campaign.name}` : '';
-    case E.CONTENT_SUBMITTED:
-      return campaign ? `${campaign.name}` : '';
-    case E.CONTENT_LIVE:
-      return event.payload?.url
-        ? `Posted on ${campaign?.brandHandle ?? ''}`
-        : (campaign ? `${campaign.brandHandle} · ${campaign.name}` : '');
-    case E.PRODUCT_SHIPPED:
-      return event.payload?.tracking
-        ? `Tracking #${event.payload.tracking}`
-        : (campaign ? campaign.name : '');
     case E.ASSIGNED_TO_CAMPAIGN:
     case E.CAMPAIGN_DECLINED:
     case E.CAMPAIGN_DETAILS_VIEWED:
@@ -130,7 +140,7 @@ function eventSubline(event, campaigns, brands = []) {
     case E.BRAND_REJECTED:
     case E.BRAND_NO_RESPONSE:
     case E.VISIBLE_TO_BRAND_TOGGLED:
-      return campaign ? `${campaign.brandHandle} · ${campaign.name}` : '';
+      return ctx;
     default:
       return '';
   }
