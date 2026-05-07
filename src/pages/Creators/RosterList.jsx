@@ -2,6 +2,7 @@ import { ChevronRight, AlertCircle, Tag as TagIcon } from 'lucide-react';
 import Avatar from '../../components/Avatar.jsx';
 import CreatorIdentity from '../../components/CreatorIdentity.jsx';
 import Pill from '../../components/Pill.jsx';
+import PortalStatusPill from '../../components/PortalStatusPill.jsx';
 
 function formatFollowers(n) {
   if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
@@ -81,7 +82,7 @@ export default function RosterList({
               />
             </span>
             <span>
-              <Pill color={status.color}>{status.label}</Pill>
+              <PortalStatusPill status={status} />
               {stalled && status.kind === 'INVITED' && (
                 <span className="roster-days stalled" style={{ marginLeft: 6 }}>
                   <AlertCircle size={12} /> {daysInStage}d

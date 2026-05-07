@@ -326,6 +326,49 @@
 }
 
 /* ─────────────────────────────────────────
+   Portal Status Pill (Katie spec, May 7)
+   Three states only — gray / yellow / green
+   ───────────────────────────────────────── */
+.portal-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.portal-status-pill.tone-gray {
+  background: #F3F4F6;
+  color: #4B5563;
+  border-color: #E5E7EB;
+}
+.portal-status-pill.tone-yellow {
+  background: #FEF3C7;
+  color: #B45309;
+  border-color: #FDE68A;
+}
+.portal-status-pill.tone-green {
+  background: #DCFCE7;
+  color: #166534;
+  border-color: #BBF7D0;
+  /* terminal state — smaller, fully-rounded chip per design */
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+.portal-status-pill-chev {
+  opacity: 0.6;
+  margin-left: 2px;
+}
+.portal-status-pill.editable:hover .portal-status-pill-chev {
+  opacity: 1;
+}
+
+/* ─────────────────────────────────────────
    Misc
    ───────────────────────────────────────── */
 .muted { color: var(--color-text-muted); }

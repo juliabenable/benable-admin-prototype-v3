@@ -177,42 +177,29 @@ export function selectCreatorCampaigns(events, creatorId, campaigns) {
   return out;
 }
 
-export function selectCreatorStatus(events, creatorId, campaigns) {
+// Portal Status is exactly one of THREE values per Katie's spec (May 7):
+//   - Not in Creator Program (gray)
+//   - Invited to Creator Program (yellow) — invited / viewed / onboarding-started/partial
+//   - In Creator Program (green) — onboarding complete
+// This is the ONLY thing the "Portal Status" column should show. Campaign
+// stage info is surfaced separately (per-campaign tabs / brand pool stages).
+export function selectCreatorStatus(events, creatorId /* campaigns is no longer used here, kept for arg compat */) {
   const creatorEvents = eventsForCreator(events, creatorId);
   const portal = reducePortalStage(creatorEvents);
-  const cs = selectCreatorCampaigns(events, creatorId, campaigns);
-  const liveCampaign = cs.find((c) => c.campaign.status === 'live'
-    && c.stage !== 'NONE' && c.stage !== 'DECLINED');
-  const declinedAny = cs.some((c) => c.stage === 'DECLINED' || c.brandDecision === 'REJECTED');
 
-  // Pill priority:
-  // 1. Active campaign stage (blue) if currently in a live campaign
-  // 2. Declined (red) if last action was a decline
-  // 3. Portal status (green/yellow)
-  // 4. Not in program (gray)
-  if (liveCampaign) {
-    return {
-      kind: 'IN_CAMPAIGN',
-      label: liveCampaign.stageLabel,
-      color: 'blue',
-      since: liveCampaign.lastUpdate,
-    };
-  }
-  if (declinedAny && portal.stage !== 'IN_PORTAL') {
-    return { kind: 'DECLINED', label: 'Declined', color: 'red', since: portal.since };
-  }
+  // Treat anything between INVITED and IN_PORTAL as "Invited to Creator Program"
+  const INVITED_STAGES = new Set([
+    'INVITED', 'INVITE_VIEWED', 'INVITE_DISMISSED',
+    'ONBOARDING_STARTED', 'ONBOARDING_PARTIAL',
+  ]);
 
-  const map = {
-    NOT_IN_PROGRAM: { label: 'Not in program', color: 'gray', kind: 'NOT_IN_PROGRAM' },
-    INVITED: { label: 'Invited', color: 'yellow', kind: 'INVITED' },
-    INVITE_VIEWED: { label: 'Invite viewed', color: 'yellow', kind: 'INVITED' },
-    INVITE_DISMISSED: { label: 'Invite dismissed', color: 'red', kind: 'DECLINED' },
-    ONBOARDING_STARTED: { label: 'Onboarding started', color: 'yellow', kind: 'INVITED' },
-    ONBOARDING_PARTIAL: { label: 'Onboarding partial', color: 'yellow', kind: 'INVITED' },
-    IN_PORTAL: { label: 'In Portal', color: 'green', kind: 'IN_PORTAL' },
-  };
-  const m = map[portal.stage] ?? map.NOT_IN_PROGRAM;
-  return { ...m, since: portal.since };
+  if (portal.stage === 'IN_PORTAL') {
+    return { kind: 'IN_PORTAL', label: 'In Creator Program', color: 'green', since: portal.since };
+  }
+  if (INVITED_STAGES.has(portal.stage)) {
+    return { kind: 'INVITED', label: 'Invited to Creator Program', color: 'yellow', since: portal.since };
+  }
+  return { kind: 'NOT_IN_PROGRAM', label: 'Not in Creator Program', color: 'gray', since: portal.since };
 }
 
 export function selectDaysInStage(status) {
@@ -232,19 +219,19 @@ export function selectActivityFeed(events, creatorId) {
 
 /* ───────── Filter helpers ───────── */
 
-// Chips are mutually exclusive — each creator falls into exactly one bucket.
-//   in-campaign: status.kind === 'IN_CAMPAIGN'
-//   in-portal:   status.kind === 'IN_PORTAL'
-//   invited:     status.kind === 'INVITED'
-//   no-campaign: anything else (NOT_IN_PROGRAM or DECLINED w/o portal completion)
-export function rosterFilterMatches(filter, status) {
+// Chips on the Creators tab combine portal status + "currently in a live campaign":
+//   in-portal:   IN_PORTAL and not in any live campaign
+//   in-campaign: in a live, non-declined campaign (regardless of portal status)
+//   invited:     INVITED (portal pending) and not in a live campaign
+//   no-campaign: NOT_IN_PROGRAM
+export function rosterFilterMatches(filter, status, hasLiveCampaign = false) {
   switch (filter) {
     case 'all': return true;
-    case 'in-portal': return status.kind === 'IN_PORTAL';
-    case 'invited': return status.kind === 'INVITED';
-    case 'in-campaign': return status.kind === 'IN_CAMPAIGN';
+    case 'in-portal': return status.kind === 'IN_PORTAL' && !hasLiveCampaign;
+    case 'invited': return status.kind === 'INVITED' && !hasLiveCampaign;
+    case 'in-campaign': return hasLiveCampaign;
     case 'no-campaign':
-      return status.kind === 'NOT_IN_PROGRAM' || status.kind === 'DECLINED';
+      return status.kind === 'NOT_IN_PROGRAM' && !hasLiveCampaign;
     default: return true;
   }
 }

@@ -5,6 +5,7 @@ import {
 import Avatar from '../../components/Avatar.jsx';
 import Pill from '../../components/Pill.jsx';
 import { InstagramIcon, TikTokIcon, BenableIcon } from '../../components/SocialIcons.jsx';
+import PortalStatusPill from '../../components/PortalStatusPill.jsx';
 import ActivityTab from './tabs/Activity.jsx';
 import CampaignsTab from './tabs/Campaigns.jsx';
 import PreferencesTab from './tabs/Preferences.jsx';
@@ -102,7 +103,7 @@ export default function ProfilePanel({ entry, onClose }) {
                   New
                 </span>
               )}
-              <Pill color={status.color}>{status.label}</Pill>
+              <PortalStatusPill status={status} />
               {hasReviewedCard && (
                 <span className="profile-reviewed-badge" title="AI card reviewed">
                   <CheckCircle2 size={12} /> Reviewed

@@ -11,6 +11,7 @@ import { useToast } from '../../components/Toast.jsx';
 import Avatar from '../../components/Avatar.jsx';
 import CreatorIdentity from '../../components/CreatorIdentity.jsx';
 import Pill from '../../components/Pill.jsx';
+import PortalStatusPill from '../../components/PortalStatusPill.jsx';
 import ProfilePanel from '../Creators/ProfilePanel.jsx';
 import BulkInviteDialog from './BulkInviteDialog.jsx';
 import BulkAssignDialog from './BulkAssignDialog.jsx';
@@ -325,7 +326,7 @@ export default function BrandPool() {
                 })()}
               </button>
               <span>
-                <Pill color={portalStatus.color}>{portalStatus.label}</Pill>
+                <PortalStatusPill status={portalStatus} />
                 {portalStatus.kind === 'INVITED' && (
                   <span className={`bp-days ${days.days >= 4 ? 'late' : ''}`}>
                     {days.days >= 4 && <AlertCircle size={12} />} {days.days}d
@@ -392,7 +393,7 @@ export default function BrandPool() {
                 <button type="button" className="bp-creator-cell" onClick={() => setOpenProfile(creator.id)}>
                   <CreatorIdentity creator={creator} compact />
                 </button>
-                <span><Pill color={portalStatus.color}>{portalStatus.label}</Pill></span>
+                <span><PortalStatusPill status={portalStatus} /></span>
                 <span>
                   <Pill color="gray">Archived · {ARCHIVE_REASON_LABELS[brandPool.archiveReason] ?? 'Other'}</Pill>
                   {brandPool.archiveNote && <div className="muted small" style={{ marginTop: 4 }}>{brandPool.archiveNote}</div>}

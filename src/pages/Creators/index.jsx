@@ -68,9 +68,10 @@ export default function Creators() {
   const counts = useMemo(() => {
     const acc = { all: enriched.length, 'in-portal': 0, invited: 0, 'in-campaign': 0, 'no-campaign': 0 };
     for (const e of enriched) {
-      if (e.status.kind === 'IN_PORTAL') acc['in-portal'] += 1;
+      const inLive = !!e.liveCampaign;
+      if (inLive) acc['in-campaign'] += 1;
+      else if (e.status.kind === 'IN_PORTAL') acc['in-portal'] += 1;
       else if (e.status.kind === 'INVITED') acc.invited += 1;
-      else if (e.status.kind === 'IN_CAMPAIGN') acc['in-campaign'] += 1;
       else acc['no-campaign'] += 1;
     }
     return acc;
@@ -78,7 +79,7 @@ export default function Creators() {
 
   const filtered = useMemo(() => {
     return enriched
-      .filter((e) => rosterFilterMatches(filter, e.status))
+      .filter((e) => rosterFilterMatches(filter, e.status, !!e.liveCampaign))
       .filter((e) => searchMatches(query, e.creator))
       .filter((e) => activeTag ? e.tags.includes(activeTag) : true)
       .sort((a, b) => {
