@@ -68,6 +68,83 @@ function brandCampaignContext(event, campaigns, brands) {
   return `${brandHandle} · ${campaign.name}`;
 }
 
+// Format a duration in milliseconds as a human-friendly string
+function formatDuration(ms) {
+  if (ms <= 0) return null;
+  const minutes = Math.round(ms / 60000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h`;
+  const days = Math.round(hours / 24);
+  return `${days}d`;
+}
+
+// Map: which event types are "creator response to a prompting event"?
+// For each, what is the prompting event type to look back at?
+const RESPONSE_PAIRS = {
+  [E.PORTAL_INVITE_VIEWED]: { promptType: E.PORTAL_INVITE_SENT, label: 'after invite' },
+  [E.ONBOARDING_STARTED]: { promptType: E.PORTAL_INVITE_SENT, label: 'after invite' },
+  [E.ONBOARDING_COMPLETED]: { promptType: E.PORTAL_INVITE_SENT, label: 'after invite' },
+  [E.CAMPAIGN_DETAILS_VIEWED]: { promptType: E.ASSIGNED_TO_CAMPAIGN, label: 'after invite' },
+  [E.CAMPAIGN_BRIEF_SCROLLED]: { promptType: E.ASSIGNED_TO_CAMPAIGN, label: 'after invite' },
+  [E.CAMPAIGN_ACCEPTED]: { promptType: E.ASSIGNED_TO_CAMPAIGN, label: 'after invite' },
+  [E.CAMPAIGN_DECLINED]: { promptType: E.ASSIGNED_TO_CAMPAIGN, label: 'after invite' },
+  [E.PRODUCT_SELECTED]: { promptType: E.CAMPAIGN_ACCEPTED, label: 'after accepting' },
+  [E.DELIVERY_CONFIRMED]: { promptType: E.PRODUCT_SHIPPED, label: 'after shipping' },
+  [E.CONTENT_SUBMITTED]: { promptType: E.DELIVERY_CONFIRMED, label: 'after delivery' },
+  [E.CONTENT_LIVE]: { promptType: E.CONTENT_APPROVED, label: 'after approval' },
+};
+
+// For a given creator action event, find the previous prompting event in the same
+// scope (campaign or portal) and return the delta + label. Only returns a result
+// if the response makes sense (creator-side action with a prior prompt).
+function computeResponseTime(event, allCreatorEvents) {
+  const pair = RESPONSE_PAIRS[event.type];
+  if (!pair) return null;
+  // Find the most recent prompting event BEFORE this one
+  const prompts = allCreatorEvents
+    .filter((e) => e.type === pair.promptType)
+    .filter((e) => e.timestamp < event.timestamp)
+    .filter((e) => {
+      // For campaign events, prompts must be for the same campaign
+      if (event.campaignId && e.campaignId) return event.campaignId === e.campaignId;
+      return true;
+    })
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const prompt = prompts[0];
+  if (!prompt) return null;
+  const deltaMs = Date.parse(event.timestamp) - Date.parse(prompt.timestamp);
+  const dur = formatDuration(deltaMs);
+  if (!dur) return null;
+  return { duration: dur, label: pair.label };
+}
+
+// Map actor.kind → tone for the timeline dot
+function actorTone(actor, fallbackTone) {
+  if (!actor) return fallbackTone;
+  if (actor.kind === 'brand') return 'yellow';
+  if (actor.kind === 'creator') return 'purple';
+  if (actor.kind === 'ops') return 'blue';
+  return fallbackTone;
+}
+
+// Format date + time explicitly (replaces relative-only)
+function formatDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  });
+}
+
+const ACTOR_LABEL = {
+  ops: 'Ops',
+  brand: 'Brand',
+  creator: 'Creator',
+  system: 'System',
+};
+
 function eventSubline(event, campaigns, brands = []) {
   const campaign = event.campaignId ? campaigns.find((c) => c.id === event.campaignId) : null;
   const brand = event.brandId ? brands.find((b) => b.id === event.brandId) : null;
@@ -195,18 +272,31 @@ export default function ActivityTab({ creator, focusNoteKey }) {
           {feed.map((event) => {
             const meta = EVENT_META[event.type] ?? { label: event.type, icon: AlertCircle, tone: 'gray' };
             const Icon = meta.icon;
+            const tone = actorTone(event.actor, meta.tone);
+            const sub = eventSubline(event, campaigns, brands);
+            const response = computeResponseTime(event, feed);
+            const actorLabel = ACTOR_LABEL[event.actor?.kind] ?? null;
             return (
-              <li key={event.id} className="timeline-item">
-                <span className={`timeline-dot tone-${meta.tone}`}>
+              <li key={event.id} className={`timeline-item actor-${event.actor?.kind ?? 'system'}`}>
+                <span className={`timeline-dot tone-${tone}`}>
                   <Icon size={14} />
                 </span>
                 <div className="timeline-body">
-                  <div className="timeline-label">{meta.label}</div>
-                  {eventSubline(event, campaigns, brands) && (
-                    <div className="timeline-sub">{eventSubline(event, campaigns, brands)}</div>
-                  )}
+                  <div className="timeline-label-row">
+                    <span className="timeline-label">{meta.label}</span>
+                    {actorLabel && (
+                      <span className={`timeline-actor-badge tone-${tone}`}>{actorLabel}</span>
+                    )}
+                    {response && (
+                      <span className="timeline-response" title={`${response.duration} ${response.label}`}>
+                        {response.duration} {response.label}
+                      </span>
+                    )}
+                  </div>
+                  {sub && <div className="timeline-sub">{sub}</div>}
                   <div className="timeline-time" title={formatFullDate(event.timestamp)}>
-                    {formatRelative(event.timestamp)}
+                    {formatDateTime(event.timestamp)}
+                    <span className="timeline-time-relative muted"> · {formatRelative(event.timestamp)}</span>
                   </div>
                 </div>
               </li>

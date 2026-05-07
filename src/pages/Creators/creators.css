@@ -491,13 +491,46 @@
 .timeline-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
   padding-top: 4px;
 }
+.timeline-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .timeline-label { font-size: 13px; font-weight: 600; color: var(--color-text); }
 .timeline-sub { font-size: 12px; color: var(--color-text-muted); }
-.timeline-time { font-size: 11px; color: var(--color-text-subtle); }
+.timeline-time { font-size: 11px; color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
+.timeline-time-relative { margin-left: 2px; }
+
+.timeline-actor-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+}
+.timeline-actor-badge.tone-purple { background: var(--pill-purple-bg); color: var(--pill-purple-text); border-color: var(--pill-purple-border); }
+.timeline-actor-badge.tone-yellow { background: var(--pill-yellow-bg); color: var(--pill-yellow-text); border-color: var(--pill-yellow-border); }
+.timeline-actor-badge.tone-blue { background: var(--pill-blue-bg); color: var(--pill-blue-text); border-color: var(--pill-blue-border); }
+.timeline-actor-badge.tone-green { background: var(--pill-green-bg); color: var(--pill-green-text); border-color: var(--pill-green-border); }
+.timeline-actor-badge.tone-red { background: var(--pill-red-bg); color: var(--pill-red-text); border-color: var(--pill-red-border); }
+.timeline-actor-badge.tone-gray { background: var(--color-surface-2); color: var(--color-text-muted); border-color: var(--color-border); }
+
+.timeline-response {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  padding: 1px 8px;
+  border-radius: 999px;
+}
 
 /* ─────────────────────────────────────────
    Campaigns tab
