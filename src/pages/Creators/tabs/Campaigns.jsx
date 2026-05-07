@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, ChevronDown } from 'lucide-react';
+import { Plus, ChevronDown, Star } from 'lucide-react';
 import { useEventStore } from '../../../store/useEventStore.jsx';
 import { selectCreatorCampaigns, TODAY_ISO } from '../../../domain/selectors.js';
 import { useToast } from '../../../components/Toast.jsx';
@@ -46,6 +46,29 @@ export default function CampaignsTab({ creator, onOpenAssign }) {
     [events, creator.id, campaigns],
   );
   const [openMenu, setOpenMenu] = useState(null);
+
+  // Surface decline reason + rating per campaign from events
+  const declineReasons = useMemo(() => {
+    const m = new Map();
+    for (const e of events) {
+      if (e.creatorId !== creator.id) continue;
+      if (e.type === E.CAMPAIGN_DECLINED && e.payload?.reason) {
+        m.set(e.campaignId, e.payload.reason);
+      }
+    }
+    return m;
+  }, [events, creator.id]);
+
+  const ratings = useMemo(() => {
+    const m = new Map();
+    for (const e of events) {
+      if (e.creatorId !== creator.id) continue;
+      if (e.type === E.CAMPAIGN_RATED && e.payload?.rating != null) {
+        m.set(e.campaignId, e.payload.rating);
+      }
+    }
+    return m;
+  }, [events, creator.id]);
 
   function toggleVisibility(campaignId, currentVisible) {
     appendEvent({
@@ -139,6 +162,21 @@ export default function CampaignsTab({ creator, onOpenAssign }) {
                     </div>
                   </div>
                 </div>
+                {declineReasons.has(c.campaign.id) && (
+                  <div className="campaign-decline-reason">
+                    <span className="muted micro">Decline reason</span>
+                    <div>{declineReasons.get(c.campaign.id)}</div>
+                  </div>
+                )}
+                {ratings.has(c.campaign.id) && (
+                  <div className="campaign-rating">
+                    <span className="muted micro">Post-campaign rating</span>
+                    <div className="campaign-rating-val">
+                      <Star size={14} fill="currentColor" />
+                      {ratings.get(c.campaign.id)}/10
+                    </div>
+                  </div>
+                )}
                 <div className="campaign-card-footer">
                   <label className="toggle-row">
                     <input

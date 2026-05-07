@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Upload, ArrowRight, AlertCircle, Send, ChevronDown, ChevronRight } from 'lucide-react';
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
-  selectBrandPool, selectCreatorStatus, selectDaysInStage,
+  selectBrandPool, selectCreatorStatus, selectDaysInStage, shouldAutoArchive,
 } from '../../domain/selectors.js';
 import { useToast } from '../../components/Toast.jsx';
 import Avatar from '../../components/Avatar.jsx';
@@ -16,6 +16,7 @@ import ArchiveDialog from './ArchiveDialog.jsx';
 const FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'potential', label: 'Potential' },
+  { id: 'confirmed', label: 'Confirmed' },
   { id: 'qualified', label: 'Qualified' },
   { id: 'archived', label: 'Archived' },
 ];
@@ -62,9 +63,10 @@ export default function BrandPool() {
   }, [events, brandId, creators, campaigns]);
 
   const counts = useMemo(() => {
-    const acc = { all: enriched.length, potential: 0, qualified: 0, archived: 0 };
+    const acc = { all: enriched.length, potential: 0, confirmed: 0, qualified: 0, archived: 0 };
     for (const e of enriched) {
       if (e.brandPool.status === 'potential') acc.potential += 1;
+      else if (e.brandPool.status === 'confirmed') acc.confirmed += 1;
       else if (e.brandPool.status === 'qualified') acc.qualified += 1;
       else if (e.brandPool.status === 'archived') acc.archived += 1;
     }
@@ -112,6 +114,15 @@ export default function BrandPool() {
   }
   function clearSelection() { setSelectedIds(new Set()); }
 
+  function confirm(creatorId) {
+    appendEvent({
+      type: 'BRAND_POOL_CONFIRMED',
+      creatorId,
+      brandId,
+      actor: { kind: 'ops', name: 'Julia' },
+    });
+    toast(`Confirmed for ${brand.name} — preferences reviewed`);
+  }
   function qualify(creatorId) {
     appendEvent({
       type: 'BRAND_POOL_QUALIFIED',
@@ -213,8 +224,9 @@ export default function BrandPool() {
 
         {filter !== 'archived' && visible.map(({ creator, portalStatus, days, brandPool }) => {
           const isGray = portalStatus.kind === 'NOT_IN_PROGRAM';
+          const autoArchiveCandidate = shouldAutoArchive(portalStatus);
           return (
-            <div key={creator.id} className="bp-row">
+            <div key={creator.id} className={`bp-row ${autoArchiveCandidate ? 'auto-archive-flag' : ''}`}>
               <span className="bp-col-checkbox">
                 {isGray && (
                   <input
@@ -246,10 +258,16 @@ export default function BrandPool() {
               </span>
               <span>
                 {brandPool.status === 'qualified' && <Pill color="green">Qualified</Pill>}
+                {brandPool.status === 'confirmed' && <Pill color="blue">Confirmed</Pill>}
                 {brandPool.status === 'potential' && <Pill color="purple">Potential</Pill>}
               </span>
               <span className="bp-row-actions">
                 {brandPool.status === 'potential' && (
+                  <button type="button" className="btn ghost small" onClick={() => confirm(creator.id)}>
+                    Confirm
+                  </button>
+                )}
+                {brandPool.status === 'confirmed' && (
                   <button type="button" className="btn ghost small" onClick={() => qualify(creator.id)}>
                     Qualify
                   </button>

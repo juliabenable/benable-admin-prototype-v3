@@ -44,11 +44,50 @@ const EVENT_META = {
   [E.BRAND_ACCEPTED]: { label: 'Accepted by brand', icon: ThumbsUp, tone: 'green' },
   [E.BRAND_REJECTED]: { label: 'Rejected by brand', icon: ThumbsDown, tone: 'red' },
   [E.BRAND_NO_RESPONSE]: { label: 'No response from brand', icon: Clock, tone: 'gray' },
+
+  [E.BRAND_POOL_ADDED]: { label: 'Added to brand pool', icon: UserPlus, tone: 'gray' },
+  [E.BRAND_POOL_CONFIRMED]: { label: 'Confirmed for brand', icon: CheckCircle2, tone: 'blue' },
+  [E.BRAND_POOL_QUALIFIED]: { label: 'Qualified for brand', icon: CheckCircle2, tone: 'green' },
+  [E.BRAND_POOL_ARCHIVED]: { label: 'Archived from brand', icon: X, tone: 'gray' },
+  [E.BRAND_POOL_UNARCHIVED]: { label: 'Unarchived', icon: PlayCircle, tone: 'purple' },
+
+  [E.AI_CARD_GENERATED]: { label: 'AI card generated', icon: Star, tone: 'purple' },
+  [E.AI_CARD_REVIEWED]: { label: 'AI card reviewed', icon: CheckCircle2, tone: 'green' },
+  [E.AI_CARD_REWORKED]: { label: 'AI card reworked', icon: Edit3, tone: 'yellow' },
+
+  [E.CAMPAIGN_RATED]: { label: 'Campaign rated', icon: Star, tone: 'green' },
+  [E.POST_COMPLIANCE_LOGGED]: { label: 'Post compliance logged', icon: CheckCircle2, tone: 'green' },
 };
 
-function eventSubline(event, campaigns) {
+function eventSubline(event, campaigns, brands = []) {
   const campaign = event.campaignId ? campaigns.find((c) => c.id === event.campaignId) : null;
+  const brand = event.brandId ? brands.find((b) => b.id === event.brandId) : null;
   const actorName = event.actor?.name;
+
+  // Brand-pool events
+  if (event.type === E.BRAND_POOL_ADDED || event.type === E.BRAND_POOL_CONFIRMED
+      || event.type === E.BRAND_POOL_QUALIFIED || event.type === E.BRAND_POOL_UNARCHIVED) {
+    return brand ? `${brand.name} pool · by ${actorName ?? 'ops'}` : '';
+  }
+  if (event.type === E.BRAND_POOL_ARCHIVED) {
+    const reason = event.payload?.reason ? ` — ${event.payload.reason}` : '';
+    return brand ? `${brand.name}${reason} · by ${actorName ?? 'ops'}` : '';
+  }
+  if (event.type === E.AI_CARD_GENERATED || event.type === E.AI_CARD_REVIEWED || event.type === E.AI_CARD_REWORKED) {
+    return campaign ? `${campaign.brandHandle} · ${campaign.name}` : '';
+  }
+  if (event.type === E.CAMPAIGN_RATED) {
+    const rating = event.payload?.rating;
+    return campaign
+      ? `${rating ? `${rating}/10 — ` : ''}${campaign.brandHandle} · ${campaign.name}`
+      : '';
+  }
+  if (event.type === E.POST_COMPLIANCE_LOGGED) {
+    const posted = event.payload?.posted ? 'Posted' : 'Did not post';
+    const onTime = event.payload?.on_time ? 'on time' : 'late';
+    return `${posted} ${onTime}${campaign ? ` · ${campaign.name}` : ''}`;
+  }
+
   switch (event.type) {
     case E.CREATOR_ADDED:
       return event.payload?.source === 'upload'
@@ -98,7 +137,7 @@ function eventSubline(event, campaigns) {
 }
 
 export default function ActivityTab({ creator, focusNoteKey }) {
-  const { events, campaigns, appendEvent } = useEventStore();
+  const { events, campaigns, brands, appendEvent } = useEventStore();
   const toast = useToast();
   const feed = useMemo(() => selectActivityFeed(events, creator.id), [events, creator.id]);
   const [noteBody, setNoteBody] = useState('');
@@ -153,8 +192,8 @@ export default function ActivityTab({ creator, focusNoteKey }) {
                 </span>
                 <div className="timeline-body">
                   <div className="timeline-label">{meta.label}</div>
-                  {eventSubline(event, campaigns) && (
-                    <div className="timeline-sub">{eventSubline(event, campaigns)}</div>
+                  {eventSubline(event, campaigns, brands) && (
+                    <div className="timeline-sub">{eventSubline(event, campaigns, brands)}</div>
                   )}
                   <div className="timeline-time" title={formatFullDate(event.timestamp)}>
                     {formatRelative(event.timestamp)}

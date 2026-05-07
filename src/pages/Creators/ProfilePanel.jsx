@@ -1,29 +1,55 @@
 import { useEffect, useState } from 'react';
-import { X, Mail, Phone, Plus, MessageSquare } from 'lucide-react';
+import {
+  X, Mail, Phone, MapPin, Plus, MessageSquare, Star, CheckCircle2, Sparkles,
+} from 'lucide-react';
 import Avatar from '../../components/Avatar.jsx';
 import Pill from '../../components/Pill.jsx';
 import ActivityTab from './tabs/Activity.jsx';
 import CampaignsTab from './tabs/Campaigns.jsx';
 import PreferencesTab from './tabs/Preferences.jsx';
+import AICardTab from './tabs/AICard.jsx';
+import LogisticsTab from './tabs/Logistics.jsx';
+import ScoringTab from './tabs/Scoring.jsx';
 import AssignToCampaign from './modals/AssignToCampaign.jsx';
 import SendNudge from './modals/SendNudge.jsx';
 import { useEventStore } from '../../store/useEventStore.jsx';
-import { selectCreatorCampaigns } from '../../domain/selectors.js';
+import {
+  selectCreatorCampaigns, selectAllTags, selectCreatorScores,
+} from '../../domain/selectors.js';
 
 const TABS = [
   { id: 'activity',    label: 'Activity' },
   { id: 'campaigns',   label: 'Campaigns' },
+  { id: 'aicard',      label: 'AI Card' },
   { id: 'preferences', label: 'Preferences' },
+  { id: 'logistics',   label: 'Logistics' },
+  { id: 'scoring',     label: 'Scoring' },
 ];
 
+function formatFollowers(n) {
+  if (!n) return '0';
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+  return String(n);
+}
+
 export default function ProfilePanel({ entry, onClose }) {
+  if (!entry) return null;
   const { creator, status, activeCampaignCount } = entry;
   const { events, campaigns } = useEventStore();
   const [tab, setTab] = useState('activity');
   const [assignOpen, setAssignOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
   const [focusNote, setFocusNote] = useState(0);
-  const campaignCount = selectCreatorCampaigns(events, creator.id, campaigns).length;
+
+  const campaignList = selectCreatorCampaigns(events, creator.id, campaigns);
+  const campaignCount = campaignList.length;
+  const tags = selectAllTags(creator);
+  const scores = selectCreatorScores(events, creator.id);
+
+  // Has any reviewed AI card?
+  const hasReviewedCard = events.some(
+    (e) => e.creatorId === creator.id && e.type === 'AI_CARD_REVIEWED',
+  );
 
   useEffect(() => {
     setTab('activity');
@@ -37,13 +63,15 @@ export default function ProfilePanel({ entry, onClose }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose, assignOpen, nudgeOpen]);
 
-  function focusNoteInput() {
-    setTab('activity');
-    setFocusNote((n) => n + 1);
-  }
+  const primaryPlatform = (creator.platformStats?.instagram?.followers ?? 0) >= (creator.platformStats?.tiktok?.followers ?? 0)
+    ? 'instagram' : 'tiktok';
+  const platformsWithFollowers = ['instagram', 'tiktok'].filter(
+    (p) => (creator.platformStats?.[p]?.followers ?? 0) > 0,
+  );
 
   return (
     <section className="profile-panel" aria-label={`Profile for ${creator.name}`}>
+      {/* ─────────────────── HEADER (above-the-fold summary) ─────────────────── */}
       <header className="profile-header">
         <button type="button" className="profile-close" onClick={onClose} aria-label="Close profile">
           <X size={18} />
@@ -55,14 +83,25 @@ export default function ProfilePanel({ entry, onClose }) {
             <div className="profile-header-name-row">
               <h2>{creator.name}</h2>
               <Pill color={status.color}>{status.label}</Pill>
+              {hasReviewedCard && (
+                <span className="profile-reviewed-badge" title="AI card reviewed">
+                  <CheckCircle2 size={12} /> Reviewed
+                </span>
+              )}
               {activeCampaignCount > 0 && (
                 <Pill color="purple">{activeCampaignCount} active</Pill>
               )}
             </div>
-            <div className="profile-header-handle">{creator.handle}</div>
+            <div className="profile-header-handle">
+              {creator.handle}
+              {creator.benableHandle && (
+                <span className="muted small"> · benable.com/{creator.benableHandle}</span>
+              )}
+            </div>
             <div className="profile-header-contact">
               <span className="row gap-1"><Mail size={13} /> {creator.email}</span>
               {creator.phone && <span className="row gap-1"><Phone size={13} /> {creator.phone}</span>}
+              {creator.locationCity && <span className="row gap-1"><MapPin size={13} /> {creator.locationCity}</span>}
               {creator.socials?.includes('instagram') && (
                 <span className="social-icon ig-icon" title="Instagram">IG</span>
               )}
@@ -71,6 +110,48 @@ export default function ProfilePanel({ entry, onClose }) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Above-the-fold summary metrics */}
+        <div className="profile-summary-grid">
+          {platformsWithFollowers.length > 0 && (
+            <div className="profile-summary-stat">
+              <div className="profile-summary-num">
+                {platformsWithFollowers.map((p) => (
+                  <span key={p} className="profile-summary-platform">
+                    <span className="profile-summary-platform-label">{p === 'instagram' ? 'IG' : 'TT'}</span>
+                    {formatFollowers(creator.platformStats[p].followers)}
+                  </span>
+                ))}
+              </div>
+              <div className="profile-summary-label">Followers</div>
+            </div>
+          )}
+          {scores.overallRating != null && (
+            <div className="profile-summary-stat">
+              <div className="profile-summary-num">
+                <Star size={14} fill="currentColor" /> {scores.overallRating.toFixed(1)}
+              </div>
+              <div className="profile-summary-label">Avg rating</div>
+            </div>
+          )}
+          {creator.contentNiche && (
+            <div className="profile-summary-stat profile-summary-niche">
+              <div className="profile-summary-num">{creator.contentNiche}</div>
+              <div className="profile-summary-label">Niche</div>
+            </div>
+          )}
+          {tags.length > 0 && (
+            <div className="profile-summary-stat profile-summary-tags-cell">
+              <div className="profile-summary-tags">
+                {tags.slice(0, 3).map((t) => (
+                  <span key={t} className="tag-mini">{t.replace(/-/g, ' ')}</span>
+                ))}
+                {tags.length > 3 && <span className="muted small">+{tags.length - 3}</span>}
+              </div>
+              <div className="profile-summary-label">Top tags</div>
+            </div>
+          )}
         </div>
 
         <div className="profile-actions">
@@ -83,9 +164,11 @@ export default function ProfilePanel({ entry, onClose }) {
         </div>
       </header>
 
+      {/* ─────────────────── EXPANDED TABS ─────────────────── */}
       <nav className="profile-tabs" role="tablist">
         {TABS.map((t) => {
-          const count = t.id === 'campaigns' ? campaignCount : null;
+          let count = null;
+          if (t.id === 'campaigns') count = campaignCount;
           return (
             <button
               key={t.id}
@@ -96,6 +179,9 @@ export default function ProfilePanel({ entry, onClose }) {
               onClick={() => setTab(t.id)}
             >
               {t.label}{count != null ? ` (${count})` : ''}
+              {t.id === 'aicard' && hasReviewedCard && (
+                <Sparkles size={12} className="profile-tab-icon-after" />
+              )}
             </button>
           );
         })}
@@ -106,21 +192,17 @@ export default function ProfilePanel({ entry, onClose }) {
         {tab === 'campaigns' && (
           <CampaignsTab creator={creator} onOpenAssign={() => setAssignOpen(true)} />
         )}
+        {tab === 'aicard' && <AICardTab creator={creator} />}
         {tab === 'preferences' && <PreferencesTab creator={creator} />}
+        {tab === 'logistics' && <LogisticsTab creator={creator} />}
+        {tab === 'scoring' && <ScoringTab creator={creator} scores={scores} />}
       </div>
 
       {assignOpen && (
-        <AssignToCampaign
-          creator={creator}
-          onClose={() => setAssignOpen(false)}
-        />
+        <AssignToCampaign creator={creator} onClose={() => setAssignOpen(false)} />
       )}
       {nudgeOpen && (
-        <SendNudge
-          creator={creator}
-          status={status}
-          onClose={() => setNudgeOpen(false)}
-        />
+        <SendNudge creator={creator} status={status} onClose={() => setNudgeOpen(false)} />
       )}
     </section>
   );

@@ -13,11 +13,21 @@ export const EVENT_TYPES = {
   NUDGE_SENT: 'NUDGE_SENT',
   NOTE_ADDED: 'NOTE_ADDED',
 
-  // Brand-pool family (per creator × brand)
-  BRAND_POOL_ADDED: 'BRAND_POOL_ADDED',
-  BRAND_POOL_QUALIFIED: 'BRAND_POOL_QUALIFIED',
+  // Brand-pool family (per creator × brand) — three-level qualification
+  BRAND_POOL_ADDED: 'BRAND_POOL_ADDED',           // → Potential
+  BRAND_POOL_CONFIRMED: 'BRAND_POOL_CONFIRMED',   // → Confirmed (preferences reviewed)
+  BRAND_POOL_QUALIFIED: 'BRAND_POOL_QUALIFIED',   // → Qualified (full vetting + AI card complete)
   BRAND_POOL_ARCHIVED: 'BRAND_POOL_ARCHIVED',
   BRAND_POOL_UNARCHIVED: 'BRAND_POOL_UNARCHIVED',
+
+  // AI brand-facing card (per creator × campaign)
+  AI_CARD_GENERATED: 'AI_CARD_GENERATED',
+  AI_CARD_REVIEWED: 'AI_CARD_REVIEWED',
+  AI_CARD_REWORKED: 'AI_CARD_REWORKED',
+
+  // Scoring + post-campaign
+  CAMPAIGN_RATED: 'CAMPAIGN_RATED',                // payload: { rating: 1-10, campaignId }
+  POST_COMPLIANCE_LOGGED: 'POST_COMPLIANCE_LOGGED', // payload: { posted: bool, platform, on_time }
 
   // Brand-context family (per brand)
   BRAND_NOTE_ADDED: 'BRAND_NOTE_ADDED',

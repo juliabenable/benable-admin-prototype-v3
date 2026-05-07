@@ -154,11 +154,26 @@ export function eventsForScenario(creator, scenario, campaigns) {
       out.push(makeEvent({ type: E.CONTENT_APPROVED, creatorId: cId, campaignId: liveId, actor: BRAND, timestamp: daysAgo(7, 11) }));
       out.push(makeEvent({ type: E.CONTENT_LIVE, creatorId: cId, campaignId: liveId, actor: CREATOR, timestamp: daysAgo(3, 18), payload: { url: 'https://www.tiktok.com/@example/video/123' } }));
       break;
-    case 'campaign-creator-declined':
+    case 'campaign-creator-declined': {
+      // Vary decline reasons for richer demo data
+      const declineReasons = [
+        '90-day usage rights too long — industry norm is 30 days',
+        'Product gift value too low ($24) — would need bundle',
+        'Brand too small / not enough name recognition',
+        'Scheduling conflict — booked through next month',
+        'Out of capacity this month',
+      ];
+      const idx = parseInt(cId.replace(/\D/g, '').slice(-1) || '0', 10) % declineReasons.length;
       out.push(makeEvent({ type: E.ASSIGNED_TO_CAMPAIGN, creatorId: cId, campaignId: liveId, actor: KATIE, timestamp: daysAgo(6, 11) }));
       out.push(makeEvent({ type: E.CAMPAIGN_DETAILS_VIEWED, creatorId: cId, campaignId: liveId, actor: CREATOR, timestamp: daysAgo(5, 13) }));
-      out.push(makeEvent({ type: E.CAMPAIGN_DECLINED, creatorId: cId, campaignId: liveId, actor: CREATOR, timestamp: daysAgo(4, 16), payload: { reason: 'Out of capacity this month' } }));
+      out.push(makeEvent({
+        type: E.CAMPAIGN_DECLINED,
+        creatorId: cId, campaignId: liveId,
+        actor: CREATOR, timestamp: daysAgo(4, 16),
+        payload: { reason: declineReasons[idx] },
+      }));
       break;
+    }
     case 'campaign-brand-rejected':
       out.push(makeEvent({ type: E.ASSIGNED_TO_CAMPAIGN, creatorId: cId, campaignId: liveId, actor: KATIE, timestamp: daysAgo(13, 11) }));
       out.push(makeEvent({ type: E.CAMPAIGN_ACCEPTED, creatorId: cId, campaignId: liveId, actor: CREATOR, timestamp: daysAgo(12, 13) }));

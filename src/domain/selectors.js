@@ -281,14 +281,22 @@ export function selectBrandPoolStatus(events, creatorId, brandId) {
   for (const e of sorted) {
     switch (e.type) {
       case E.BRAND_POOL_ADDED:
-        if (status !== 'qualified') {
+        if (!status) {
           status = 'potential';
           since = e.timestamp;
         }
         break;
+      case E.BRAND_POOL_CONFIRMED:
+        if (status !== 'qualified' && status !== 'archived') {
+          status = 'confirmed';
+          since = e.timestamp;
+        }
+        break;
       case E.BRAND_POOL_QUALIFIED:
-        status = 'qualified';
-        since = e.timestamp;
+        if (status !== 'archived') {
+          status = 'qualified';
+          since = e.timestamp;
+        }
         break;
       case E.BRAND_POOL_ARCHIVED:
         status = 'archived';
@@ -297,7 +305,7 @@ export function selectBrandPoolStatus(events, creatorId, brandId) {
         since = e.timestamp;
         break;
       case E.BRAND_POOL_UNARCHIVED:
-        status = 'potential'; // back to default reviewable state
+        status = 'potential';
         archiveReason = null;
         archiveNote = null;
         since = e.timestamp;
@@ -340,10 +348,14 @@ function selectBrandPoolStatusFromEvents(creatorBrandEvents) {
   for (const e of sorted) {
     switch (e.type) {
       case E.BRAND_POOL_ADDED:
-        if (status !== 'qualified') { status = 'potential'; since = e.timestamp; }
+        if (!status) { status = 'potential'; since = e.timestamp; }
+        break;
+      case E.BRAND_POOL_CONFIRMED:
+        if (status !== 'qualified' && status !== 'archived') { status = 'confirmed'; since = e.timestamp; }
         break;
       case E.BRAND_POOL_QUALIFIED:
-        status = 'qualified'; since = e.timestamp; break;
+        if (status !== 'archived') { status = 'qualified'; since = e.timestamp; }
+        break;
       case E.BRAND_POOL_ARCHIVED:
         status = 'archived';
         archiveReason = e.payload?.reason ?? null;
@@ -483,4 +495,99 @@ export function selectAutoTags(creator) {
 export function selectAllTags(creator) {
   // Combines auto-applied + custom (from creator.customTags)
   return [...new Set([...selectAutoTags(creator), ...(creator.customTags ?? [])])];
+}
+
+/* ───────── Scoring (per creator, derived from event log) ───────── */
+
+export function selectCreatorScores(events, creatorId) {
+  const all = eventsForCreator(events, creatorId);
+
+  // Overall rating: average of CAMPAIGN_RATED events
+  const ratings = all.filter((e) => e.type === E.CAMPAIGN_RATED).map((e) => e.payload?.rating).filter(Boolean);
+  const overallRating = ratings.length === 0 ? null
+    : ratings.reduce((a, b) => a + b, 0) / ratings.length;
+
+  // Campaign acceptance rate
+  const assigned = all.filter((e) => e.type === E.ASSIGNED_TO_CAMPAIGN).length;
+  const accepted = all.filter((e) => e.type === E.CAMPAIGN_ACCEPTED).length;
+  const declined = all.filter((e) => e.type === E.CAMPAIGN_DECLINED).length;
+  const acceptanceRate = (assigned === 0) ? null : accepted / assigned;
+
+  // Post compliance rate (based on POST_COMPLIANCE_LOGGED events)
+  const postsLogged = all.filter((e) => e.type === E.POST_COMPLIANCE_LOGGED);
+  const postsCompliant = postsLogged.filter((e) => e.payload?.posted && e.payload?.on_time).length;
+  const postCompliance = postsLogged.length === 0 ? null : postsCompliant / postsLogged.length;
+
+  // Speed of onboarding (days between PORTAL_INVITE_SENT and ONBOARDING_COMPLETED)
+  const inviteSent = all.find((e) => e.type === E.PORTAL_INVITE_SENT);
+  const onboardingComplete = all.find((e) => e.type === E.ONBOARDING_COMPLETED);
+  const onboardingSpeed = (inviteSent && onboardingComplete)
+    ? Math.round((Date.parse(onboardingComplete.timestamp) - Date.parse(inviteSent.timestamp)) / 86400000)
+    : null;
+
+  // Responsiveness: average days from invite sent to first response
+  let respDays = null;
+  if (inviteSent) {
+    const firstResponse = all.find((e) =>
+      Date.parse(e.timestamp) > Date.parse(inviteSent.timestamp)
+      && [E.PORTAL_INVITE_VIEWED, E.ONBOARDING_STARTED, E.CAMPAIGN_DETAILS_VIEWED, E.CAMPAIGN_ACCEPTED, E.CAMPAIGN_DECLINED].includes(e.type)
+    );
+    if (firstResponse) {
+      respDays = Math.round((Date.parse(firstResponse.timestamp) - Date.parse(inviteSent.timestamp)) / 86400000);
+    }
+  }
+
+  return {
+    overallRating,
+    acceptanceRate,
+    postCompliance,
+    onboardingSpeed,
+    responsivenessDays: respDays,
+    campaignsAccepted: accepted,
+    campaignsDeclined: declined,
+    campaignsAssigned: assigned,
+  };
+}
+
+/* ───────── AI Card (per creator × campaign) ───────── */
+
+export function selectAICard(events, creatorId, campaignId) {
+  const cardEvents = events.filter((e) =>
+    e.creatorId === creatorId && e.campaignId === campaignId
+    && (e.type === E.AI_CARD_GENERATED || e.type === E.AI_CARD_REVIEWED || e.type === E.AI_CARD_REWORKED)
+  );
+  if (cardEvents.length === 0) return null;
+
+  let bullets = [];
+  let videos = [];
+  let reviewedAt = null;
+  let reviewedBy = null;
+  let generatedAt = null;
+
+  for (const e of sortAsc(cardEvents)) {
+    if (e.type === E.AI_CARD_GENERATED || e.type === E.AI_CARD_REWORKED) {
+      bullets = e.payload?.bullets ?? bullets;
+      videos = e.payload?.videos ?? videos;
+      generatedAt = e.timestamp;
+      if (e.type === E.AI_CARD_REWORKED) {
+        reviewedAt = null;
+        reviewedBy = null;
+      }
+    }
+    if (e.type === E.AI_CARD_REVIEWED) {
+      reviewedAt = e.timestamp;
+      reviewedBy = e.actor?.name ?? 'ops';
+    }
+  }
+  return { bullets, videos, reviewedAt, reviewedBy, generatedAt };
+}
+
+/* ───────── Auto-archive (7 days no response) ───────── */
+
+export function shouldAutoArchive(portalStatus) {
+  if (!portalStatus) return false;
+  if (portalStatus.kind !== 'INVITED') return false;
+  if (!portalStatus.since) return false;
+  const days = relativeDays(portalStatus.since);
+  return days >= 7;
 }
