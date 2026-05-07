@@ -4,7 +4,9 @@ import { Upload, ArrowRight, AlertCircle, Send, ChevronDown, ChevronRight } from
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
   selectBrandPool, selectCreatorStatus, selectDaysInStage, shouldAutoArchive,
+  selectCreatorScores, overallScoreColor,
 } from '../../domain/selectors.js';
+import { CAMPAIGN_TO_BRAND } from '../../domain/seed/brands.js';
 import { useToast } from '../../components/Toast.jsx';
 import Avatar from '../../components/Avatar.jsx';
 import Pill from '../../components/Pill.jsx';
@@ -20,6 +22,17 @@ const FILTERS = [
   { id: 'qualified', label: 'Qualified' },
   { id: 'archived', label: 'Archived' },
 ];
+
+// Spec §6 ranking — lower number = sorted first
+function rankFor(brandPoolStatus, portalStatus, scores) {
+  if (brandPoolStatus === 'archived') return 6;
+  if (portalStatus.kind === 'INVITED') return 4;
+  if (brandPoolStatus === 'qualified' && scores.overall != null && scores.overall >= 7) return 1;
+  if (brandPoolStatus === 'qualified') return 2; // qualified, no score yet
+  if (portalStatus.kind === 'NOT_IN_PROGRAM') return 3;
+  if (scores.overall != null && scores.overall < 6) return 5;
+  return 3; // default: new + uninvited treated optimistically
+}
 
 const ARCHIVE_REASON_LABELS = {
   'timing': 'Timing',
@@ -45,7 +58,7 @@ export default function BrandPool() {
   const [archiveTarget, setArchiveTarget] = useState(null);
   const [archiveExpanded, setArchiveExpanded] = useState(false);
 
-  // Pool members enriched with creator + portal status + brand-pool status
+  // Pool members enriched with creator + portal status + brand-pool status + scores
   const enriched = useMemo(() => {
     const pool = selectBrandPool(events, brandId);
     return pool.map((entry) => {
@@ -53,11 +66,15 @@ export default function BrandPool() {
       if (!creator) return null;
       const portalStatus = selectCreatorStatus(events, creator.id, campaigns);
       const days = selectDaysInStage(portalStatus);
+      const scores = selectCreatorScores(events, creator.id);
       return {
         creator,
         portalStatus,
         days,
         brandPool: entry,
+        scores,
+        // Per-spec ranking
+        rank: rankFor(entry.status, portalStatus, scores),
       };
     }).filter(Boolean);
   }, [events, brandId, creators, campaigns]);
@@ -73,10 +90,10 @@ export default function BrandPool() {
     return acc;
   }, [enriched]);
 
-  // Filter + search
+  // Filter + search + sort per spec ranking
   const visible = useMemo(() => {
     return enriched.filter((e) => {
-      if (filter === 'all' && e.brandPool.status === 'archived') return false; // archive shown separately
+      if (filter === 'all' && e.brandPool.status === 'archived') return false;
       if (filter !== 'all' && filter !== 'archived' && e.brandPool.status !== filter) return false;
       if (filter === 'archived' && e.brandPool.status !== 'archived') return false;
       if (query) {
@@ -87,6 +104,15 @@ export default function BrandPool() {
         }
       }
       return true;
+    }).sort((a, b) => {
+      // Primary: rank ascending (1 first)
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      // Secondary: overall score descending (within rank)
+      const oa = a.scores.overall ?? -1;
+      const ob = b.scores.overall ?? -1;
+      if (ob !== oa) return ob - oa;
+      // Tertiary: most recent activity
+      return (b.brandPool.since ?? '').localeCompare(a.brandPool.since ?? '');
     });
   }, [enriched, filter, query]);
 
@@ -244,7 +270,38 @@ export default function BrandPool() {
               >
                 <Avatar creator={creator} size={32} />
                 <span>
-                  <span className="bp-creator-name">{creator.name}</span>
+                  <span className="bp-creator-name">
+                    {creator.name}
+                    {/* Overall score pill inline */}
+                    {(() => {
+                      const e = enriched.find((x) => x.creator.id === creator.id);
+                      if (!e) return null;
+                      if (e.scores.overall != null) {
+                        return (
+                          <span className={`overall-score-pill small tone-${overallScoreColor(e.scores.overall)}`}
+                            title={e.scores.overallMode === 'composite'
+                              ? `R ${e.scores.reliability?.toFixed(1)} · Q ${e.scores.quality?.toFixed(1)}`
+                              : 'Reliability only'}>
+                            {e.scores.overall.toFixed(1)}
+                          </span>
+                        );
+                      }
+                      if (e.scores.isNew) return <span className="overall-score-pill small tone-gray">New</span>;
+                      return null;
+                    })()}
+                    {/* Past decline */}
+                    {(() => {
+                      const declines = events.filter((ev) =>
+                        ev.creatorId === creator.id && ev.type === 'CAMPAIGN_DECLINED',
+                      );
+                      const past = declines.find((d) => d.campaignId && CAMPAIGN_TO_BRAND[d.campaignId] === brandId);
+                      return past ? (
+                        <span className="past-decline-flag" title={`Declined: ${past.payload?.reason ?? 'no reason'}`}>
+                          <AlertCircle size={11} /> Past decline
+                        </span>
+                      ) : null;
+                    })()}
+                  </span>
                   <span className="bp-creator-handle">{creator.handle}</span>
                 </span>
               </button>

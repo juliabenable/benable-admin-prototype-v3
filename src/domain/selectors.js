@@ -390,64 +390,113 @@ export function relativeDays(iso) {
   return Math.max(0, Math.floor((Date.parse(TODAY_ISO) - ms) / 86400000));
 }
 
-/* ───────── Brief-fit deterministic scorer ───────── */
-// Returns { score, reasons[], fit: 'green'|'red' }
+/* ─────────────────────────────────────────
+   Fit Score (per Creator Scoring Spec §3C)
 
-export function scoreBriefFit(creator, brief) {
-  let score = 0;
+   Five weighted inputs, all 0–10:
+     30% — Content tag overlap (% of brief tags matched by creator's tags)
+     25% — Platform availability (binary: covers required platforms)
+     20% — Gifted campaign openness (yes=10, maybe=5, no=0)
+     15% — Small brand willingness (when brand is small) yes=10, maybe=5, no=0
+     10% — Past decline penalty (10 = no past decline; 0 = previous decline)
+
+   Returns score on 0–10 scale + breakdown.
+   ───────────────────────────────────────── */
+
+export function scoreBriefFit(creator, brief, ctx = {}) {
+  const { hasPastDeclineForThisBrand = false } = ctx;
+
+  // Tag overlap (using both categories and customTags + auto tags)
+  const briefTags = [
+    ...(brief.categories ?? []),
+    ...(brief.tags ?? []),
+  ].map((t) => String(t).toLowerCase().trim());
+  const creatorTags = [
+    ...(creator.categories ?? []),
+    ...selectAutoTags(creator).map((id) => id.replace(/-/g, ' ')),
+    ...(creator.customTags ?? []),
+  ].map((t) => String(t).toLowerCase().trim());
+  const overlap = creatorTags.filter((c) => briefTags.includes(c));
+  const tagOverlapPct = briefTags.length === 0 ? 0 : Math.min(1, overlap.length / briefTags.length);
+  const tagScore = tagOverlapPct * 10;
+
+  // Platform availability (binary)
+  const creatorPlatforms = creator.socials ?? [];
+  const requiredPlatforms = brief.platforms ?? [];
+  const allCovered = requiredPlatforms.length > 0
+    && requiredPlatforms.every((p) => creatorPlatforms.includes(p));
+  const platformScore = allCovered ? 10 : 0;
+  const missingPlatforms = requiredPlatforms.filter((p) => !creatorPlatforms.includes(p));
+
+  // Gifted openness
+  const giftedAns = creator.preferences?.giftedOpenness?.toLowerCase() ?? '';
+  let giftedScore = 5; // neutral default if missing
+  let giftedSource = 'missing';
+  if (creator.preferences?.smallBrands === 'yes' || /yes|very open/i.test(giftedAns)) {
+    giftedScore = 10; giftedSource = 'yes';
+  } else if (creator.preferences?.smallBrands === 'no' || /^no/i.test(giftedAns)) {
+    giftedScore = 0; giftedSource = 'no';
+  } else if (creator.preferences?.smallBrands === 'maybe' || /maybe/i.test(giftedAns)) {
+    giftedScore = 5; giftedSource = 'maybe';
+  }
+
+  // Small brand willingness (only applies when brand is small)
+  let smallBrandScore = 5;
+  let smallBrandSource = 'n/a';
+  if (brief.brandIsSmall) {
+    if (creator.preferences?.smallBrands === 'yes') { smallBrandScore = 10; smallBrandSource = 'yes'; }
+    else if (creator.preferences?.smallBrands === 'no') { smallBrandScore = 0; smallBrandSource = 'no'; }
+    else if (creator.preferences?.smallBrands === 'maybe') { smallBrandScore = 5; smallBrandSource = 'maybe'; }
+    else { smallBrandScore = 5; smallBrandSource = 'missing'; }
+  }
+
+  // Past-decline penalty
+  const declineScore = hasPastDeclineForThisBrand ? 0 : 10;
+
+  // Weighted composite
+  const fit =
+    0.30 * tagScore
+    + 0.25 * platformScore
+    + 0.20 * giftedScore
+    + 0.15 * smallBrandScore
+    + 0.10 * declineScore;
+
+  // Reasons (for display)
   const reasons = [];
+  if (overlap.length > 0) reasons.push(`tag match: ${overlap.slice(0, 3).join(', ')}${overlap.length > 3 ? '…' : ''}`);
+  if (allCovered) reasons.push(`covers required platforms`);
+  if (giftedSource === 'yes') reasons.push(`open to gifted`);
+  if (brief.brandIsSmall && smallBrandSource === 'yes') reasons.push(`open to small brands`);
+
   const negatives = [];
+  if (briefTags.length > 0 && overlap.length === 0) negatives.push(`no tag overlap`);
+  if (missingPlatforms.length > 0) negatives.push(`missing platform: ${missingPlatforms.join(', ')}`);
+  if (giftedSource === 'no') negatives.push(`not open to gifted`);
+  if (brief.brandIsSmall && smallBrandSource === 'no') negatives.push(`not open to small brands`);
+  if (hasPastDeclineForThisBrand) negatives.push(`past decline of this brand`);
 
-  // Category overlap
-  const briefCats = (brief.categories ?? []).map((c) => c.toLowerCase());
-  const creatorCats = (creator.categories ?? []).map((c) => c.toLowerCase());
-  const overlap = creatorCats.filter((c) => briefCats.includes(c));
-  if (overlap.length > 0) {
-    score += overlap.length * 2;
-    reasons.push(`${overlap.length} category match${overlap.length === 1 ? '' : 'es'}: ${overlap.join(', ')}`);
-  } else if (briefCats.length > 0 && creatorCats.length > 0) {
-    score -= 3;
-    negatives.push('no category overlap with brief');
-  }
+  // Onboarding incomplete?
+  const incompleteOnboarding = !creator.preferences?.giftedOpenness && !creator.preferences?.smallBrands;
 
-  // Platform requirements
-  if (brief.platforms?.length > 0) {
-    const creatorPlatforms = creator.socials ?? [];
-    const supported = brief.platforms.filter((p) => creatorPlatforms.includes(p));
-    const missing = brief.platforms.filter((p) => !creatorPlatforms.includes(p));
-    if (supported.length === brief.platforms.length) {
-      score += 2;
-      reasons.push(`covers required platforms (${supported.join(', ')})`);
-    } else if (missing.length > 0) {
-      score -= 4;
-      negatives.push(`missing required platform: ${missing.join(', ')}`);
-    }
-  }
-
-  // Gifted openness for gifted briefs
-  if (brief.gifted) {
-    const small = creator.preferences?.smallBrands;
-    if (small === 'yes') { score += 2; reasons.push('open to small brands'); }
-    else if (small === 'no') { score -= 5; negatives.push('not open to small brands'); }
-    else if (small === 'maybe') { score += 0; reasons.push('cautious on small brands'); }
-  }
-
-  // Avoid match (strong negative)
-  const avoidText = (creator.preferences?.avoid ?? '').toLowerCase();
-  if (brief.vertical && avoidText.includes(brief.vertical.toLowerCase())) {
-    score -= 6;
-    negatives.push(`creator listed "${brief.vertical}" in avoid`);
-  }
-
-  // Onboarding completeness as confidence boost
-  if (creator.onboardingStatus === 'complete') {
-    score += 1;
-  }
+  // Bucket: low / medium / high (for bar display)
+  let bucket = 'low';
+  if (fit >= 7) bucket = 'high';
+  else if (fit >= 4) bucket = 'medium';
 
   return {
-    score,
-    fit: score >= 2 ? 'green' : 'red',
+    fit,                             // 0–10
+    bucket,                          // 'low' | 'medium' | 'high'
+    breakdown: {
+      tag: { score: tagScore, weight: 0.30, overlap, briefTags },
+      platform: { score: platformScore, weight: 0.25, missing: missingPlatforms, covered: allCovered },
+      gifted: { score: giftedScore, weight: 0.20, source: giftedSource },
+      smallBrand: { score: smallBrandScore, weight: 0.15, source: smallBrandSource, applicable: !!brief.brandIsSmall },
+      decline: { score: declineScore, weight: 0.10, hasPastDecline: hasPastDeclineForThisBrand },
+    },
     reasons: reasons.concat(negatives.map((n) => `⚠ ${n}`)),
+    incompleteOnboarding,
+    // Backwards-compat for existing brief check usage (was 'green'/'red' threshold)
+    score: fit, // numeric for sorting
   };
 }
 
@@ -497,56 +546,219 @@ export function selectAllTags(creator) {
   return [...new Set([...selectAutoTags(creator), ...(creator.customTags ?? [])])];
 }
 
-/* ───────── Scoring (per creator, derived from event log) ───────── */
+/* ─────────────────────────────────────────
+   Scoring (per Creator Scoring Spec, May 2026)
+
+   Three independent sub-scores:
+     R — Reliability (auto, 4 weighted signals)
+     Q — Quality (manual rating average w/ recency decay)
+     F — Fit (per-campaign, computed at evaluation time, NOT stored here)
+
+   Composite Overall = 0.6R + 0.4Q
+   ───────────────────────────────────────── */
+
+const TODAY_MS = Date.parse(TODAY_ISO);
+
+// Recency decay: 6mo = 50% weight, 12mo = 25% weight
+function recencyWeight(timestamp) {
+  if (!timestamp) return 1;
+  const monthsAgo = (TODAY_MS - Date.parse(timestamp)) / (1000 * 60 * 60 * 24 * 30);
+  if (monthsAgo > 12) return 0.25;
+  if (monthsAgo > 6) return 0.5;
+  return 1;
+}
+
+// Reply-speed → score (per spec: 0d=10, 1d=9, 2d=7, 3d=5, 4d=3, 5+=1, none=0)
+function replyScoreForDays(days) {
+  if (days == null) return 0;
+  if (days <= 0) return 10;
+  if (days === 1) return 9;
+  if (days === 2) return 7;
+  if (days === 3) return 5;
+  if (days === 4) return 3;
+  return 1;
+}
 
 export function selectCreatorScores(events, creatorId) {
   const all = eventsForCreator(events, creatorId);
 
-  // Overall rating: average of CAMPAIGN_RATED events
-  const ratings = all.filter((e) => e.type === E.CAMPAIGN_RATED).map((e) => e.payload?.rating).filter(Boolean);
-  const overallRating = ratings.length === 0 ? null
-    : ratings.reduce((a, b) => a + b, 0) / ratings.length;
+  // ── Inputs ──
+  const inviteSent = all.find((e) => e.type === E.PORTAL_INVITE_SENT);
+  const onboardingComplete = all.find((e) => e.type === E.ONBOARDING_COMPLETED);
+  const onboardingPartial = all.find((e) => e.type === E.ONBOARDING_PARTIAL);
+  const onboardingStarted = all.find((e) => e.type === E.ONBOARDING_STARTED);
 
-  // Campaign acceptance rate
   const assigned = all.filter((e) => e.type === E.ASSIGNED_TO_CAMPAIGN).length;
   const accepted = all.filter((e) => e.type === E.CAMPAIGN_ACCEPTED).length;
   const declined = all.filter((e) => e.type === E.CAMPAIGN_DECLINED).length;
-  const acceptanceRate = (assigned === 0) ? null : accepted / assigned;
 
-  // Post compliance rate (based on POST_COMPLIANCE_LOGGED events)
   const postsLogged = all.filter((e) => e.type === E.POST_COMPLIANCE_LOGGED);
   const postsCompliant = postsLogged.filter((e) => e.payload?.posted && e.payload?.on_time).length;
-  const postCompliance = postsLogged.length === 0 ? null : postsCompliant / postsLogged.length;
 
-  // Speed of onboarding (days between PORTAL_INVITE_SENT and ONBOARDING_COMPLETED)
-  const inviteSent = all.find((e) => e.type === E.PORTAL_INVITE_SENT);
-  const onboardingComplete = all.find((e) => e.type === E.ONBOARDING_COMPLETED);
+  const ratingEvents = all.filter((e) => e.type === E.CAMPAIGN_RATED);
+
+  // ── Reliability sub-signals (each 0–10) ──
+  let replyScore = null, replyDays = null;
+  if (inviteSent) {
+    const firstResponse = all.find((e) =>
+      Date.parse(e.timestamp) > Date.parse(inviteSent.timestamp)
+      && [E.PORTAL_INVITE_VIEWED, E.ONBOARDING_STARTED, E.CAMPAIGN_DETAILS_VIEWED,
+          E.CAMPAIGN_ACCEPTED, E.CAMPAIGN_DECLINED].includes(e.type),
+    );
+    if (firstResponse) {
+      replyDays = Math.round((Date.parse(firstResponse.timestamp) - Date.parse(inviteSent.timestamp)) / 86400000);
+      replyScore = replyScoreForDays(replyDays);
+    } else {
+      // Sent ≥7 days ago without response → 0 (auto-archive trigger range)
+      const daysWaiting = relativeDays(inviteSent.timestamp);
+      if (daysWaiting >= 7) replyScore = 0;
+      else replyScore = null; // not enough data yet
+    }
+  }
+
+  let onboardingScore = null;
+  if (onboardingComplete) onboardingScore = 10;
+  else if (onboardingPartial || onboardingStarted) onboardingScore = 5;
+  else if (inviteSent) onboardingScore = 0; // invited but never started
+
+  // Post compliance: only if ≥1 campaign completed
+  const complianceScore = postsLogged.length > 0
+    ? (postsCompliant / postsLogged.length) * 10
+    : null;
+
+  // Acceptance rate: only if ≥3 invites
+  const acceptanceScore = assigned >= 3
+    ? (accepted / assigned) * 10
+    : null;
+
+  // ── Reliability composite (0–10) ──
+  // Weights: 35% reply, 25% onboarding, 25% compliance, 15% acceptance
+  // If a signal is missing (null), redistribute its weight proportionally.
+  const reliabilityInputs = [
+    { score: replyScore, weight: 0.35 },
+    { score: onboardingScore, weight: 0.25 },
+    { score: complianceScore, weight: 0.25 },
+    { score: acceptanceScore, weight: 0.15 },
+  ];
+  const present = reliabilityInputs.filter((s) => s.score != null);
+  const totalWeight = present.reduce((a, b) => a + b.weight, 0);
+  const reliability = (totalWeight === 0)
+    ? null
+    : present.reduce((sum, s) => sum + s.score * (s.weight / totalWeight), 0);
+
+  // ── Quality sub-score: weighted average of ratings with recency decay ──
+  let quality = null;
+  let qualityCount = 0;
+  if (ratingEvents.length > 0) {
+    let sum = 0;
+    let weightSum = 0;
+    for (const e of ratingEvents) {
+      const r = e.payload?.rating;
+      if (r == null) continue;
+      const w = recencyWeight(e.timestamp);
+      sum += r * w;
+      weightSum += w;
+      qualityCount += 1;
+    }
+    if (weightSum > 0) quality = sum / weightSum;
+  }
+
+  // ── Composite Overall (0.6R + 0.4Q; if Q missing, R only) ──
+  let overall = null;
+  let overallMode = 'no-data';
+  if (reliability != null && quality != null) {
+    overall = 0.6 * reliability + 0.4 * quality;
+    overallMode = 'composite';
+  } else if (reliability != null) {
+    overall = reliability;
+    overallMode = 'reliability-only';
+  } else if (quality != null) {
+    overall = quality;
+    overallMode = 'quality-only';
+  }
+
+  // Days to onboarding complete (for display)
   const onboardingSpeed = (inviteSent && onboardingComplete)
     ? Math.round((Date.parse(onboardingComplete.timestamp) - Date.parse(inviteSent.timestamp)) / 86400000)
     : null;
 
-  // Responsiveness: average days from invite sent to first response
-  let respDays = null;
-  if (inviteSent) {
-    const firstResponse = all.find((e) =>
-      Date.parse(e.timestamp) > Date.parse(inviteSent.timestamp)
-      && [E.PORTAL_INVITE_VIEWED, E.ONBOARDING_STARTED, E.CAMPAIGN_DETAILS_VIEWED, E.CAMPAIGN_ACCEPTED, E.CAMPAIGN_DECLINED].includes(e.type)
-    );
-    if (firstResponse) {
-      respDays = Math.round((Date.parse(firstResponse.timestamp) - Date.parse(inviteSent.timestamp)) / 86400000);
-    }
-  }
-
   return {
-    overallRating,
-    acceptanceRate,
-    postCompliance,
+    overall,
+    overallMode, // 'composite' | 'reliability-only' | 'quality-only' | 'no-data'
+    reliability,
+    quality,
+    qualityCount,
+    // Reliability sub-signals (for breakdown)
+    reliabilityBreakdown: {
+      reply: { score: replyScore, days: replyDays, weight: 0.35 },
+      onboarding: { score: onboardingScore, weight: 0.25 },
+      compliance: { score: complianceScore, weight: 0.25, samples: postsLogged.length },
+      acceptance: { score: acceptanceScore, weight: 0.15, accepted, assigned, sampleFloor: 3 },
+    },
+    // Raw values for the Scoring tab
     onboardingSpeed,
-    responsivenessDays: respDays,
+    responsivenessDays: replyDays,
     campaignsAccepted: accepted,
     campaignsDeclined: declined,
     campaignsAssigned: assigned,
+    postCompliance: complianceScore != null ? complianceScore / 10 : null,
+    acceptanceRate: assigned >= 3 ? accepted / assigned : null,
+    overallRating: quality, // backwards-compat alias
+    isNew: !inviteSent && qualityCount === 0,
   };
+}
+
+// Quality-rating timeline (for Scoring tab change log)
+export function selectQualityRatings(events, creatorId, campaigns) {
+  return eventsForCreator(events, creatorId)
+    .filter((e) => e.type === E.CAMPAIGN_RATED)
+    .map((e) => ({
+      id: e.id,
+      rating: e.payload?.rating,
+      campaign: campaigns.find((c) => c.id === e.campaignId),
+      ratedBy: e.actor?.name ?? 'Ops',
+      timestamp: e.timestamp,
+      decayWeight: recencyWeight(e.timestamp),
+    }))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+}
+
+// Score event history (for "Score change log" — last N changes)
+export function selectScoreEvents(events, creatorId, n = 5) {
+  const types = new Set([
+    E.PORTAL_INVITE_SENT, E.PORTAL_INVITE_VIEWED, E.ONBOARDING_COMPLETED,
+    E.ONBOARDING_PARTIAL, E.CAMPAIGN_ACCEPTED, E.CAMPAIGN_DECLINED,
+    E.CAMPAIGN_RATED, E.POST_COMPLIANCE_LOGGED,
+  ]);
+  return eventsForCreator(events, creatorId)
+    .filter((e) => types.has(e.type))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, n);
+}
+
+// Has the creator previously declined the same brand?
+export function hasPastDeclineForBrand(events, creatorId, brandId, campaigns, brandHandleByCampaign = null) {
+  const declines = events.filter((e) =>
+    e.creatorId === creatorId && e.type === E.CAMPAIGN_DECLINED,
+  );
+  if (declines.length === 0) return null;
+  for (const d of declines) {
+    const camp = campaigns.find((c) => c.id === d.campaignId);
+    if (!camp) continue;
+    // Brand match: either via the (provided) lookup or by handle compare against passed brand
+    if (brandHandleByCampaign && brandHandleByCampaign[camp.id] === brandId) {
+      return { reason: d.payload?.reason, timestamp: d.timestamp, campaign: camp };
+    }
+  }
+  return null;
+}
+
+// Score color per spec
+export function overallScoreColor(score) {
+  if (score == null) return 'gray';
+  if (score >= 8) return 'green';
+  if (score >= 6) return 'yellow';
+  return 'red';
 }
 
 /* ───────── AI Card (per creator × campaign) ───────── */

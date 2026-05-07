@@ -14,7 +14,7 @@ import AssignToCampaign from './modals/AssignToCampaign.jsx';
 import SendNudge from './modals/SendNudge.jsx';
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
-  selectCreatorCampaigns, selectAllTags, selectCreatorScores,
+  selectCreatorCampaigns, selectAllTags, selectCreatorScores, overallScoreColor,
 } from '../../domain/selectors.js';
 
 const TABS = [
@@ -82,6 +82,25 @@ export default function ProfilePanel({ entry, onClose }) {
           <div className="profile-header-meta">
             <div className="profile-header-name-row">
               <h2>{creator.name}</h2>
+              {scores.overall != null && (
+                <span
+                  className={`overall-score-pill tone-${overallScoreColor(scores.overall)}`}
+                  title={
+                    scores.overallMode === 'composite'
+                      ? `Overall = 0.6·R(${scores.reliability?.toFixed(1)}) + 0.4·Q(${scores.quality?.toFixed(1)})`
+                      : scores.overallMode === 'reliability-only'
+                      ? `Reliability only · no quality ratings yet`
+                      : `Quality only · no reliability data`
+                  }
+                >
+                  {scores.overall.toFixed(1)}
+                </span>
+              )}
+              {scores.overall == null && scores.isNew && (
+                <span className="overall-score-pill tone-gray" title="No history yet">
+                  New
+                </span>
+              )}
               <Pill color={status.color}>{status.label}</Pill>
               {hasReviewedCard && (
                 <span className="profile-reviewed-badge" title="AI card reviewed">
@@ -127,12 +146,20 @@ export default function ProfilePanel({ entry, onClose }) {
               <div className="profile-summary-label">Followers</div>
             </div>
           )}
-          {scores.overallRating != null && (
+          {scores.reliability != null && (
             <div className="profile-summary-stat">
               <div className="profile-summary-num">
-                <Star size={14} fill="currentColor" /> {scores.overallRating.toFixed(1)}
+                {scores.reliability.toFixed(1)}<span className="muted small"> /10</span>
               </div>
-              <div className="profile-summary-label">Avg rating</div>
+              <div className="profile-summary-label">Reliability</div>
+            </div>
+          )}
+          {scores.quality != null && (
+            <div className="profile-summary-stat">
+              <div className="profile-summary-num">
+                <Star size={14} fill="currentColor" /> {scores.quality.toFixed(1)}
+              </div>
+              <div className="profile-summary-label">Quality ({scores.qualityCount})</div>
             </div>
           )}
           {creator.contentNiche && (
