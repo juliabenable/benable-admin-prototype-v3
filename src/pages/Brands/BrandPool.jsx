@@ -117,7 +117,16 @@ export default function BrandPool() {
     }).sort((a, b) => {
       // Primary: rank ascending (1 first)
       if (a.rank !== b.rank) return a.rank - b.rank;
-      // Secondary: overall score descending (within rank)
+      // Within Potentials, sort by portal-action urgency:
+      //   NOT_IN_PROGRAM (need to invite) → INVITED (need follow-up) → IN_PORTAL (ready to qualify)
+      // so ops sees variety AND the most-actionable items first
+      if (a.brandPool.status === 'potential' && b.brandPool.status === 'potential') {
+        const portalRank = { NOT_IN_PROGRAM: 0, INVITED: 1, IN_PORTAL: 2 };
+        const pa = portalRank[a.portalStatus.kind] ?? 3;
+        const pb = portalRank[b.portalStatus.kind] ?? 3;
+        if (pa !== pb) return pa - pb;
+      }
+      // Secondary: overall score descending
       const oa = a.scores.overall ?? -1;
       const ob = b.scores.overall ?? -1;
       if (ob !== oa) return ob - oa;
