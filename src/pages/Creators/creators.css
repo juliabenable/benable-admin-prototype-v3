@@ -1201,6 +1201,80 @@
 .small { font-size: 12px; }
 
 /* ─────────────────────────────────────────
+   Campaigns tab v2 — decision badges + pools
+   ───────────────────────────────────────── */
+.campaign-decisions {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.4fr) minmax(140px, 1fr);
+  gap: 18px;
+  margin-bottom: 12px;
+}
+.campaign-decision-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.campaign-decision-cell .micro {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.campaign-stage-text { font-size: 13px; font-weight: 500; }
+
+.decision-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+  white-space: nowrap;
+  width: fit-content;
+}
+.decision-badge.tone-green { background: var(--pill-green-bg); color: var(--pill-green-text); border-color: var(--pill-green-border); }
+.decision-badge.tone-red { background: var(--pill-red-bg); color: var(--pill-red-text); border-color: var(--pill-red-border); }
+.decision-badge.tone-yellow { background: var(--pill-yellow-bg); color: var(--pill-yellow-text); border-color: var(--pill-yellow-border); }
+.decision-badge.tone-gray { background: var(--color-surface-2); color: var(--color-text-muted); border-color: var(--color-border); }
+
+/* Pools section at the bottom of Campaigns tab */
+.campaigns-pools {
+  margin-top: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+.campaigns-pools h3 {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+.campaigns-pools-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.campaigns-pool-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+}
+.campaigns-pool-name { font-weight: 600; font-size: 13px; }
+
+/* ─────────────────────────────────────────
    Decline reason + rating in Campaigns tab
    ───────────────────────────────────────── */
 .campaign-decline-reason {
