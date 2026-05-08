@@ -9,6 +9,7 @@ import {
 import { EVENT_TYPES as E } from '../../../domain/events.js';
 import BrandLogo from '../../Brands/BrandLogo.jsx';
 import Pill from '../../../components/Pill.jsx';
+import FitLevelToggle from '../../../components/FitLevelToggle.jsx';
 
 function isEmpty(v) {
   if (v == null) return true;
@@ -46,15 +47,8 @@ function Field({ label, children, empty }) {
   );
 }
 
-const STATUS_OPTIONS = [
-  { value: 'qualified', label: 'Qualified', color: 'green' },
-  { value: 'confirmed', label: 'Confirmed', color: 'blue' },
-  { value: 'potential', label: 'Potential', color: 'purple' },
-  { value: 'archived', label: 'Not qualified', color: 'gray' },
-];
-
-function PoolMembershipRow({ entry, creator, onChange }) {
-  const { brand, status, archiveReason } = entry;
+function PoolMembershipRow({ entry, onChange }) {
+  const { brand, status } = entry;
   return (
     <div className="prefs-pool-row">
       <BrandLogo brand={brand} size={28} />
@@ -62,18 +56,7 @@ function PoolMembershipRow({ entry, creator, onChange }) {
         <div className="prefs-pool-name">{brand.name}</div>
         <div className="muted small">{brand.handle}</div>
       </div>
-      <div className="prefs-pool-toggle">
-        {STATUS_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            className={`prefs-toggle-btn tone-${opt.color} ${status === opt.value ? 'active' : ''}`}
-            onClick={() => onChange(brand.id, opt.value)}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+      <FitLevelToggle status={status} onChange={(level) => onChange(brand.id, level)} />
     </div>
   );
 }
@@ -132,23 +115,30 @@ export default function PreferencesTab({ creator }) {
     return autoTags.map((id) => map.get(id)).filter(Boolean);
   }, [autoTags]);
 
-  function changePoolStatus(brandId, newStatus) {
-    const eventTypeMap = {
-      qualified: E.BRAND_POOL_QUALIFIED,
-      confirmed: E.BRAND_POOL_CONFIRMED,
-      potential: E.BRAND_POOL_UNARCHIVED, // resets to potential
-      archived: E.BRAND_POOL_ARCHIVED,
-    };
-    const evType = eventTypeMap[newStatus];
+  function changePoolStatus(brandId, level) {
+    let evType;
+    let payload = {};
+    let label = '';
+    if (level === 'good') {
+      evType = E.BRAND_POOL_QUALIFIED;
+      label = 'Good fit';
+    } else if (level === 'not-a-fit') {
+      evType = E.BRAND_POOL_ARCHIVED;
+      payload = { reason: 'not-a-fit' };
+      label = 'Not a fit';
+    } else {
+      evType = E.BRAND_POOL_UNARCHIVED; // resets to potential
+      label = 'Potential fit';
+    }
     appendEvent({
       type: evType,
       creatorId: creator.id,
       brandId,
       actor: { kind: 'ops', name: 'Julia' },
-      payload: newStatus === 'archived' ? { reason: 'not-a-fit' } : {},
+      payload,
     });
     const brand = brands.find((b) => b.id === brandId);
-    toast(`${brand?.name}: marked ${newStatus === 'archived' ? 'not qualified' : newStatus}`);
+    toast(`${brand?.name}: marked ${label}`);
   }
 
   function addToPool(brandId) {

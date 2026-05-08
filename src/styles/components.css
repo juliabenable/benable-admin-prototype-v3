@@ -326,6 +326,51 @@
 }
 
 /* ─────────────────────────────────────────
+   Fit Level Toggle (Katie spec, May 7)
+   Replaces the static Brand Pool pill — three segments, click-to-set
+   ───────────────────────────────────────── */
+.fit-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface);
+  white-space: nowrap;
+}
+.fit-toggle.sm .fit-toggle-btn {
+  padding: 4px 9px;
+  font-size: 11px;
+}
+.fit-toggle-btn {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.fit-toggle-btn:first-child { border-left: 0; }
+.fit-toggle-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+.fit-toggle-btn.active.tone-green {
+  background: var(--pill-green-bg);
+  color: var(--pill-green-text);
+  font-weight: 700;
+}
+.fit-toggle-btn.active.tone-purple {
+  background: var(--pill-purple-bg);
+  color: var(--pill-purple-text);
+  font-weight: 700;
+}
+.fit-toggle-btn.active.tone-gray {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────
    Portal Status Pill (Katie spec, May 7)
    Three states only — gray / yellow / green
    ───────────────────────────────────────── */

@@ -12,6 +12,7 @@ import Avatar from '../../components/Avatar.jsx';
 import CreatorIdentity from '../../components/CreatorIdentity.jsx';
 import Pill from '../../components/Pill.jsx';
 import PortalStatusPill from '../../components/PortalStatusPill.jsx';
+import FitLevelToggle from '../../components/FitLevelToggle.jsx';
 import ProfilePanel from '../Creators/ProfilePanel.jsx';
 import BulkInviteDialog from './BulkInviteDialog.jsx';
 import BulkAssignDialog from './BulkAssignDialog.jsx';
@@ -171,6 +172,33 @@ export default function BrandPool() {
     });
     toast(`Qualified for ${brand.name}`);
   }
+
+  // Three-segment Fit Level toggle handler:
+  // 'good' → BRAND_POOL_QUALIFIED · 'potential' → unarchive (resets) · 'not-a-fit' → archive
+  function setFitLevel(creatorId, level) {
+    let evType;
+    let payload = {};
+    let label = '';
+    if (level === 'good') {
+      evType = 'BRAND_POOL_QUALIFIED';
+      label = `Marked Good fit for ${brand.name}`;
+    } else if (level === 'not-a-fit') {
+      evType = 'BRAND_POOL_ARCHIVED';
+      payload = { reason: 'not-a-fit' };
+      label = `Marked Not a fit for ${brand.name}`;
+    } else {
+      evType = 'BRAND_POOL_UNARCHIVED'; // resets to potential
+      label = `Marked Potential fit for ${brand.name}`;
+    }
+    appendEvent({
+      type: evType,
+      creatorId,
+      brandId,
+      actor: { kind: 'ops', name: 'Julia' },
+      payload,
+    });
+    toast(label);
+  }
   function unarchive(creatorId) {
     appendEvent({
       type: 'BRAND_POOL_UNARCHIVED',
@@ -281,7 +309,7 @@ export default function BrandPool() {
           <span className="bp-col-checkbox" />
           <span>Creator</span>
           <span>Portal status</span>
-          <span>Brand pool</span>
+          <span>Fit level for this brand</span>
           <span />
         </div>
 
@@ -345,35 +373,13 @@ export default function BrandPool() {
                 )}
               </span>
               <span>
-                {brandPool.status === 'qualified' && (
-                  <Pill color="green" title={`Confirmed fit for ${brand.name}: socials reviewed, onboarding answers reviewed, ready to be assigned to a campaign`}>Qualified</Pill>
-                )}
-                {brandPool.status === 'confirmed' && (
-                  <Pill color="blue" title={`Preferences reviewed for ${brand.name}; awaiting full vetting / AI card before assigning`}>Confirmed</Pill>
-                )}
-                {brandPool.status === 'potential' && (
-                  <Pill color="purple" title={`In ${brand.name} pool but not yet reviewed — Katie/Des hasn't checked their socials or onboarding answers for ${brand.name} fit`}>Potential</Pill>
-                )}
+                <FitLevelToggle
+                  status={brandPool.status}
+                  onChange={(level) => setFitLevel(creator.id, level)}
+                  size="sm"
+                />
               </span>
               <span className="bp-row-actions">
-                {brandPool.status === 'potential' && (
-                  <button type="button" className="btn ghost small" onClick={() => confirm(creator.id)}>
-                    Confirm
-                  </button>
-                )}
-                {brandPool.status === 'confirmed' && (
-                  <button type="button" className="btn ghost small" onClick={() => qualify(creator.id)}>
-                    Qualify
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="btn ghost small"
-                  onClick={() => setArchiveTarget(creator)}
-                  title="Archive from this brand"
-                >
-                  Archive
-                </button>
                 <button
                   type="button"
                   className="btn ghost icon-only"
@@ -406,14 +412,19 @@ export default function BrandPool() {
                 </button>
                 <span><PortalStatusPill status={portalStatus} /></span>
                 <span>
-                  <Pill color="gray">Archived · {ARCHIVE_REASON_LABELS[brandPool.archiveReason] ?? 'Other'}</Pill>
-                  {brandPool.archiveNote && <div className="muted small" style={{ marginTop: 4 }}>{brandPool.archiveNote}</div>}
+                  <FitLevelToggle
+                    status={brandPool.status}
+                    onChange={(level) => setFitLevel(creator.id, level)}
+                    size="sm"
+                  />
+                  {brandPool.archiveReason && (
+                    <div className="muted small" style={{ marginTop: 4 }}>
+                      {ARCHIVE_REASON_LABELS[brandPool.archiveReason] ?? brandPool.archiveReason}
+                      {brandPool.archiveNote ? ` · ${brandPool.archiveNote}` : ''}
+                    </div>
+                  )}
                 </span>
-                <span className="bp-row-actions">
-                  <button type="button" className="btn ghost small" onClick={() => unarchive(creator.id)}>
-                    Unarchive
-                  </button>
-                </span>
+                <span className="bp-row-actions" />
               </div>
             ))}
           </div>
