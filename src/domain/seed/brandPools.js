@@ -66,12 +66,17 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     return !isInPool;
   });
 
-  // Aubree-Says: mix of portal states across the potentials so the
-  // gray/yellow/green pills all show up. Recently sourced from Logan's tool.
-  //   cr_g40, cr_g42 → "Not in Creator Program" (gray, no-campaign-fresh)
-  //   cr_g29, cr_g33 → "Invited to Creator Program" (yellow)
-  //   cr_g17 → "In Creator Program" (green, in-portal scenario)
-  const aubreePotentials = ['cr_g40', 'cr_g42', 'cr_g29', 'cr_g33', 'cr_g17'];
+  // Aubree-Says: 3+ of each portal status so all three pill designs
+  // (gray Not-in-Program / yellow Invited / green In Program) have
+  // multiple representatives visible in the same Potential filter.
+  //   gray:   cr_g40, cr_g41, cr_g42 (no-campaign-fresh)
+  //   yellow: cr_g29, cr_g33, cr_g37 (invited-fresh / viewed / stalled)
+  //   green:  cr_g17, cr_g18, cr_g19 (in-portal)
+  const aubreePotentials = [
+    'cr_g40', 'cr_g41', 'cr_g42',
+    'cr_g29', 'cr_g33', 'cr_g37',
+    'cr_g17', 'cr_g18', 'cr_g19',
+  ];
   for (const cid of aubreePotentials) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
@@ -96,8 +101,15 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     }));
   }
 
-  // Home with Tay: 1 gray + 1 yellow + 2 green for variety
-  const tayPotentials = ['cr_g43', 'cr_g30', 'cr_g20', 'cr_g23'];
+  // Home with Tay: 3+ of each portal status
+  //   gray:   cr_g43, cr_g40
+  //   yellow: cr_g30, cr_g32, cr_g35
+  //   green:  cr_g20, cr_g23, cr_g25
+  const tayPotentials = [
+    'cr_g43', 'cr_g40',
+    'cr_g30', 'cr_g32', 'cr_g35',
+    'cr_g20', 'cr_g23', 'cr_g25',
+  ];
   for (const cid of tayPotentials) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
@@ -109,8 +121,15 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     }));
   }
 
-  // Pikora: 1 gray + 2 yellow + 1 green
-  const cleanPotentials = ['cr_g41', 'cr_g32', 'cr_g35', 'cr_g28'];
+  // Pikora: 3+ of each portal status
+  //   gray:   cr_g42, cr_g41
+  //   yellow: cr_g31, cr_g34, cr_g38
+  //   green:  cr_g21, cr_g22, cr_g28
+  const cleanPotentials = [
+    'cr_g42', 'cr_g41',
+    'cr_g31', 'cr_g34', 'cr_g38',
+    'cr_g21', 'cr_g22', 'cr_g28',
+  ];
   for (const cid of cleanPotentials) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
@@ -122,9 +141,15 @@ export function buildBrandPoolEvents(creators, campaigns, baseEvents) {
     }));
   }
 
-  // Kinder Living: 6 potential — already has variety (sage green + haley yellow stalled + g41 gray)
-  // Adjust: replace g41 (now in Pikora) with g34 yellow, and add g38 yellow stalled
-  const kinderPotentials = ['cr_sage', 'cr_haley', 'cr_g02', 'cr_g34', 'cr_g38', 'cr_g44'];
+  // Kinder Living: 3+ of each portal status
+  //   gray:   cr_g43, cr_g41
+  //   yellow: cr_haley (Invited stalled), cr_g36, cr_g39
+  //   green:  cr_sage, cr_g02, cr_g26
+  const kinderPotentials = [
+    'cr_g43', 'cr_g41',
+    'cr_haley', 'cr_g36', 'cr_g39',
+    'cr_sage', 'cr_g02', 'cr_g26',
+  ];
   for (const cid of kinderPotentials) {
     if (!creators.find((c) => c.id === cid)) continue;
     events.push(makeEvent({
