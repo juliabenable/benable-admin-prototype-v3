@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Upload, ArrowRight, AlertCircle, Send, ChevronDown, ChevronRight, Plus, Users } from 'lucide-react';
+import { Upload, ArrowRight, AlertCircle, Send, ChevronDown, ChevronRight, Plus, Users, X as XIcon } from 'lucide-react';
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
   selectBrandPool, selectCreatorStatus, selectDaysInStage, shouldAutoArchive,
@@ -221,6 +221,46 @@ export default function BrandPool() {
     toast('Unarchived — back to Potential');
   }
 
+  // Portal status transitions (per Katie May 7): Not → Invited → In Program
+  function transitionPortalStatus(creatorId, fromKind, toKind) {
+    if (fromKind === toKind) return;
+    if (toKind === 'INVITED') {
+      appendEvent({
+        type: 'PORTAL_INVITE_SENT',
+        creatorId,
+        actor: { kind: 'ops', name: 'Julia' },
+      });
+      toast('Portal invite sent');
+    } else if (toKind === 'IN_PORTAL') {
+      // If they were Not in Program, send invite first then mark complete
+      if (fromKind === 'NOT_IN_PROGRAM') {
+        appendEvent({
+          type: 'PORTAL_INVITE_SENT',
+          creatorId,
+          actor: { kind: 'ops', name: 'Julia' },
+        });
+      }
+      appendEvent({
+        type: 'ONBOARDING_COMPLETED',
+        creatorId,
+        actor: { kind: 'ops', name: 'Julia' },
+        payload: { manualOverride: true },
+      });
+      toast('Marked as In Creator Program');
+    }
+    // Going backwards (e.g., In → Invited) is intentionally not supported
+    // since events are append-only and that would require a new event type.
+  }
+
+  // Format date as "May 7, 2026"
+  function formatDateAdded(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      timeZone: 'America/Los_Angeles',
+    });
+  }
+
   if (!brand) return null;
 
   return (
@@ -321,7 +361,9 @@ export default function BrandPool() {
           <span className="bp-col-checkbox" />
           <span>Creator</span>
           <span>Portal status</span>
+          <span>Days</span>
           <span>Fit level for this brand</span>
+          <span>Date added</span>
           <span />
         </div>
 
@@ -377,11 +419,18 @@ export default function BrandPool() {
                 })()}
               </button>
               <span>
-                <PortalStatusPill status={portalStatus} />
-                {portalStatus.kind === 'INVITED' && (
-                  <span className={`bp-days ${days.days >= 4 ? 'late' : ''}`}>
+                <PortalStatusPill
+                  status={portalStatus}
+                  onTransition={(from, to) => transitionPortalStatus(creator.id, from, to)}
+                />
+              </span>
+              <span className={`bp-days-cell ${days.days >= 4 && portalStatus.kind === 'INVITED' ? 'late' : ''}`}>
+                {portalStatus.kind === 'INVITED' ? (
+                  <>
                     {days.days >= 4 && <AlertCircle size={12} />} {days.days}d
-                  </span>
+                  </>
+                ) : (
+                  <span className="muted small">—</span>
                 )}
               </span>
               <span>
@@ -390,14 +439,18 @@ export default function BrandPool() {
                   onChange={(level) => setFitLevel(creator.id, level)}
                 />
               </span>
+              <span className="bp-date-added">
+                {formatDateAdded(brandPool.since)}
+              </span>
               <span className="bp-row-actions">
                 <button
                   type="button"
-                  className="btn ghost icon-only"
-                  onClick={() => setOpenProfile(creator.id)}
-                  aria-label="Open profile"
+                  className="btn ghost icon-only bp-x-btn"
+                  onClick={() => setArchiveTarget(creator)}
+                  aria-label="Archive from this brand"
+                  title="Archive from this brand"
                 >
-                  <ArrowRight size={14} />
+                  <XIcon size={15} />
                 </button>
               </span>
             </div>
@@ -422,11 +475,11 @@ export default function BrandPool() {
                   <CreatorIdentity creator={creator} compact />
                 </button>
                 <span><PortalStatusPill status={portalStatus} /></span>
+                <span><span className="muted small">—</span></span>
                 <span>
                   <FitLevelToggle
                     status={brandPool.status}
                     onChange={(level) => setFitLevel(creator.id, level)}
-                    size="sm"
                   />
                   {brandPool.archiveReason && (
                     <div className="muted small" style={{ marginTop: 4 }}>
@@ -435,7 +488,14 @@ export default function BrandPool() {
                     </div>
                   )}
                 </span>
-                <span className="bp-row-actions" />
+                <span className="bp-date-added">{formatDateAdded(brandPool.since)}</span>
+                <span className="bp-row-actions"><button
+                  type="button"
+                  className="btn ghost icon-only bp-x-btn"
+                  onClick={() => unarchive(creator.id)}
+                  aria-label="Unarchive"
+                  title="Unarchive — back to Potential"
+                >↶</button></span>
               </div>
             ))}
           </div>

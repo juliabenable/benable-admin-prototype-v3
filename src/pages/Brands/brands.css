@@ -481,7 +481,7 @@
 }
 .bp-row {
   display: grid;
-  grid-template-columns: 32px minmax(220px, 2fr) 200px 220px 200px;
+  grid-template-columns: 32px minmax(180px, 1.6fr) 220px 56px minmax(150px, 1fr) 110px 36px;
   gap: 12px;
   align-items: center;
   padding: 10px 14px;
@@ -539,6 +539,32 @@
 .bp-days.late {
   color: var(--color-amber);
   font-weight: 600;
+}
+.bp-days-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.bp-days-cell.late {
+  color: var(--color-amber);
+  font-weight: 700;
+}
+.bp-date-added {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bp-x-btn {
+  color: var(--color-text-subtle);
+}
+.bp-x-btn:hover {
+  color: var(--pill-red-text);
+  background: var(--pill-red-bg);
 }
 
 .bp-row-actions {

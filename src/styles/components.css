@@ -445,9 +445,62 @@
   opacity: 0.6;
   margin-left: 2px;
 }
+.portal-status-pill.editable {
+  cursor: pointer;
+}
+.portal-status-pill.terminal {
+  cursor: default;
+}
 .portal-status-pill.editable:hover .portal-status-pill-chev {
   opacity: 1;
 }
+.portal-status-pill.open .portal-status-pill-chev {
+  transform: rotate(180deg);
+}
+
+.portal-status-wrap {
+  position: relative;
+  display: inline-block;
+}
+.portal-status-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  min-width: 240px;
+  padding: 4px;
+}
+.portal-status-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-text);
+}
+.portal-status-menu-item:hover { background: var(--color-surface-2); }
+.portal-status-menu-item.active { font-weight: 600; }
+.portal-status-menu-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.portal-status-menu-item.tone-gray .portal-status-menu-dot { background: #6B7280; }
+.portal-status-menu-item.tone-yellow .portal-status-menu-dot { background: #CA8A04; }
+.portal-status-menu-item.tone-green .portal-status-menu-dot { background: #16A34A; }
+.portal-status-menu-label { flex: 1; }
+.portal-status-menu-item svg { color: var(--color-text-muted); }
 
 /* ─────────────────────────────────────────
    Misc
