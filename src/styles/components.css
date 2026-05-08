@@ -326,49 +326,85 @@
 }
 
 /* ─────────────────────────────────────────
-   Fit Level Toggle (Katie spec, May 7)
-   Replaces the static Brand Pool pill — three segments, click-to-set
+   Fit Level Pill + Dropdown (Katie spec, May 7)
+   Compact pill with a chevron — click to open a 3-option menu
    ───────────────────────────────────────── */
-.fit-toggle {
+.fit-toggle-wrap {
+  position: relative;
+  display: inline-block;
+}
+.fit-pill {
   display: inline-flex;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--color-surface);
-  white-space: nowrap;
-}
-.fit-toggle.sm .fit-toggle-btn {
-  padding: 4px 9px;
-  font-size: 11px;
-}
-.fit-toggle-btn {
-  background: transparent;
-  border: 0;
-  border-left: 1px solid var(--color-border);
-  padding: 5px 12px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-muted);
+  font-weight: 600;
+  border: 1px solid;
+  background: var(--color-surface);
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  white-space: nowrap;
+  transition: filter 120ms ease;
 }
-.fit-toggle-btn:first-child { border-left: 0; }
-.fit-toggle-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
-.fit-toggle-btn.active.tone-green {
+.fit-pill:hover { filter: brightness(0.97); }
+.fit-pill.tone-green {
   background: var(--pill-green-bg);
   color: var(--pill-green-text);
-  font-weight: 700;
+  border-color: var(--pill-green-border);
 }
-.fit-toggle-btn.active.tone-purple {
+.fit-pill.tone-purple {
   background: var(--pill-purple-bg);
   color: var(--pill-purple-text);
-  font-weight: 700;
+  border-color: var(--pill-purple-border);
 }
-.fit-toggle-btn.active.tone-gray {
+.fit-pill.tone-gray {
   background: var(--color-surface-2);
-  color: var(--color-text);
-  font-weight: 700;
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
 }
+.fit-pill-chev { opacity: 0.7; }
+.fit-pill.open .fit-pill-chev { transform: rotate(180deg); }
+
+.fit-pill-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  min-width: 180px;
+  padding: 4px;
+}
+.fit-pill-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-text);
+}
+.fit-pill-menu-item:hover { background: var(--color-surface-2); }
+.fit-pill-menu-item.active { font-weight: 600; }
+.fit-pill-menu-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.fit-pill-menu-item.tone-green .fit-pill-menu-dot { background: #16A34A; }
+.fit-pill-menu-item.tone-purple .fit-pill-menu-dot { background: #6D28D9; }
+.fit-pill-menu-item.tone-gray .fit-pill-menu-dot { background: #6B7280; }
+.fit-pill-menu-label { flex: 1; }
+.fit-pill-menu-item svg { color: var(--color-text-muted); }
 
 /* ─────────────────────────────────────────
    Portal Status Pill (Katie spec, May 7)

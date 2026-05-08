@@ -28,15 +28,18 @@ const FILTERS = [
   { id: 'archived', label: 'Archived' },
 ];
 
-// Spec §6 ranking — lower number = sorted first
+// Brand-pool-specific ranking: Potentials first (ops needs to review them),
+// then Qualified, then Confirmed, then Archived.
+// Within each rank, secondary sort is by overall score desc, then recency.
 function rankFor(brandPoolStatus, portalStatus, scores) {
-  if (brandPoolStatus === 'archived') return 6;
-  if (portalStatus.kind === 'INVITED') return 4;
-  if (brandPoolStatus === 'qualified' && scores.overall != null && scores.overall >= 7) return 1;
-  if (brandPoolStatus === 'qualified') return 2; // qualified, no score yet
-  if (portalStatus.kind === 'NOT_IN_PROGRAM') return 3;
-  if (scores.overall != null && scores.overall < 6) return 5;
-  return 3; // default: new + uninvited treated optimistically
+  if (brandPoolStatus === 'archived') return 5;
+  // Potentials at the top — these are the "needs review" bucket
+  if (brandPoolStatus === 'potential') return 1;
+  if (brandPoolStatus === 'confirmed') return 2;
+  // Qualified split by score
+  if (brandPoolStatus === 'qualified' && scores.overall != null && scores.overall >= 7) return 3;
+  if (brandPoolStatus === 'qualified') return 4;
+  return 4;
 }
 
 const ARCHIVE_REASON_LABELS = {
@@ -376,7 +379,6 @@ export default function BrandPool() {
                 <FitLevelToggle
                   status={brandPool.status}
                   onChange={(level) => setFitLevel(creator.id, level)}
-                  size="sm"
                 />
               </span>
               <span className="bp-row-actions">
