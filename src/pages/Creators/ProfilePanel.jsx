@@ -38,6 +38,21 @@ function formatFollowers(n) {
   return String(n);
 }
 
+// Google Calendar-inspired tag palette. Stable hash → color so admin tags
+// look the same across renders. Distinct from the solid category chips so
+// it reads as "label managed by ops, not a creator-declared category."
+const CALENDAR_TAG_COLORS = [
+  'tomato', 'tangerine', 'banana', 'sage',
+  'peacock', 'blueberry', 'lavender', 'flamingo',
+];
+function calendarTagColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i += 1) {
+    h = ((h << 5) - h + name.charCodeAt(i)) | 0;
+  }
+  return CALENDAR_TAG_COLORS[Math.abs(h) % CALENDAR_TAG_COLORS.length];
+}
+
 export default function ProfilePanel({ entry, onClose }) {
   if (!entry) return null;
   const { creator, status, activeCampaignCount } = entry;
@@ -126,6 +141,11 @@ export default function ProfilePanel({ entry, onClose }) {
               {creator.locationCity && (
                 <span className="muted"> · {creator.locationCity}</span>
               )}
+              {scores.reliability != null && (
+                <span className="muted">
+                  {' · '}Reliability {scores.reliability.toFixed(1)}/10
+                </span>
+              )}
             </div>
 
             {creator.contentNiche && (
@@ -137,6 +157,24 @@ export default function ProfilePanel({ entry, onClose }) {
                 {creator.categories.slice(0, 3).map((t) => (
                   <span key={t} className="tag-mini">{t}</span>
                 ))}
+              </div>
+            )}
+
+            {/* Admin-managed tags — Google Calendar-style chip (colored dot
+                + text) so they read as visually distinct from the solid
+                category chips above. (Katie May 8) */}
+            {tags.length > 0 && (
+              <div className="profile-admin-tags">
+                {tags.slice(0, 6).map((t) => {
+                  const color = calendarTagColor(t);
+                  return (
+                    <span key={t} className={`calendar-tag color-${color}`}>
+                      <span className={`calendar-tag-dot color-${color}`} aria-hidden="true" />
+                      {t.replace(/-/g, ' ')}
+                    </span>
+                  );
+                })}
+                {tags.length > 6 && <span className="muted small">+{tags.length - 6}</span>}
               </div>
             )}
 
@@ -173,9 +211,12 @@ export default function ProfilePanel({ entry, onClose }) {
           )}
         </div>
 
-        {/* Redesigned stat tiles — clearer hierarchy, less cluttered (Katie May 8) */}
-        {(platformsWithFollowers.length > 0 || scores.reliability != null || scores.quality != null) && (
-          <div className="profile-stats">
+        {/* Stat tiles — Reliability + Top tags removed per Katie May 8.
+            Reliability is now inline next to the handle; tags live in the
+            admin-tags strip above. Followers + Quality keep their tiles
+            since they don't fit cleanly inline. */}
+        {(platformsWithFollowers.length > 0 || scores.quality != null) && (
+          <div className="profile-stats profile-stats-2col">
             {platformsWithFollowers.length > 0 && (
               <div className="profile-stat">
                 <div className="profile-stat-label">Followers</div>
@@ -192,15 +233,6 @@ export default function ProfilePanel({ entry, onClose }) {
                 </div>
               </div>
             )}
-            {scores.reliability != null && (
-              <div className="profile-stat">
-                <div className="profile-stat-label">Reliability</div>
-                <div className="profile-stat-value">
-                  <span className="profile-stat-num">{scores.reliability.toFixed(1)}</span>
-                  <span className="profile-stat-suffix">/10</span>
-                </div>
-              </div>
-            )}
             {scores.quality != null && (
               <div className="profile-stat">
                 <div className="profile-stat-label">Quality</div>
@@ -208,17 +240,6 @@ export default function ProfilePanel({ entry, onClose }) {
                   <Star size={14} fill="currentColor" className="profile-stat-icon" />
                   <span className="profile-stat-num">{scores.quality.toFixed(1)}</span>
                   <span className="profile-stat-suffix">({scores.qualityCount})</span>
-                </div>
-              </div>
-            )}
-            {tags.length > 0 && (
-              <div className="profile-stat profile-stat-tags">
-                <div className="profile-stat-label">Top tags</div>
-                <div className="profile-stat-tag-list">
-                  {tags.slice(0, 4).map((t) => (
-                    <span key={t} className="tag-mini">{t.replace(/-/g, ' ')}</span>
-                  ))}
-                  {tags.length > 4 && <span className="muted small">+{tags.length - 4}</span>}
                 </div>
               </div>
             )}

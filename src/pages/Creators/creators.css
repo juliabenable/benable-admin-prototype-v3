@@ -306,6 +306,47 @@
   gap: 5px;
   margin-top: 8px;
 }
+
+/* Admin-managed tags — Google Calendar-inspired chips (colored dot + text on
+   a light bordered pill). Visually distinct from .tag-mini so ops can tell
+   "label I set" from "category the creator declared". */
+.profile-admin-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+.calendar-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  line-height: 1.6;
+}
+.calendar-tag-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+/* Google Calendar-inspired palette (named after their preset colors) */
+.calendar-tag-dot.color-tomato    { background: #D50000; }
+.calendar-tag-dot.color-tangerine { background: #F4511E; }
+.calendar-tag-dot.color-banana    { background: #E4C441; }
+.calendar-tag-dot.color-sage      { background: #33B679; }
+.calendar-tag-dot.color-peacock   { background: #039BE5; }
+.calendar-tag-dot.color-blueberry { background: #3F51B5; }
+.calendar-tag-dot.color-lavender  { background: #7986CB; }
+.calendar-tag-dot.color-flamingo  { background: #E67C73; }
 .profile-header-contact {
   margin-top: 10px;
   display: flex;
@@ -368,6 +409,10 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
+}
+/* 2-col variant — used once Reliability + Top-tags moved out of tiles */
+.profile-stats.profile-stats-2col {
+  grid-template-columns: repeat(2, 1fr);
 }
 .profile-stat {
   background: var(--color-surface-2);
