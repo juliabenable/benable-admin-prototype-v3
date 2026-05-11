@@ -808,20 +808,81 @@
   padding: 0;
   margin: 0;
   position: relative;
+  /* Anchor the vertical line at the icon column center. The Activity tab
+     uses a 3-col grid (date | icon | body) so the line shifts right; the
+     Recent-activity timeline-compact variant overrides this back to the
+     legacy 2-col layout. */
+  --timeline-line-x: 13px;
 }
 .timeline::before {
   content: '';
   position: absolute;
-  left: 13px;
+  left: var(--timeline-line-x);
   top: 12px;
   bottom: 12px;
   width: 2px;
   background: var(--color-border);
 }
+/* Activity-tab variant — date column on the left, then icon, then body. */
+.activity-tab .timeline {
+  --timeline-line-x: 117px; /* center of 28px icon at column 2 */
+}
+.activity-tab .timeline-item {
+  grid-template-columns: 90px 28px 1fr;
+}
+.timeline-when {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+  align-self: start;
+  padding-top: 2px;
+  min-width: 0;
+}
+.timeline-when-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.timeline-when-time {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.timeline-when-response {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  align-self: flex-start;
+  letter-spacing: 0.01em;
+}
+.timeline-when-response.tone-purple { background: var(--pill-purple-bg); color: var(--pill-purple-text); }
+.timeline-when-response.tone-green { background: var(--pill-green-bg); color: var(--pill-green-text); }
+.timeline-when-response.tone-blue { background: var(--pill-blue-bg); color: var(--pill-blue-text); }
+.timeline-when-response.tone-yellow { background: var(--pill-yellow-bg); color: var(--pill-yellow-text); }
+.timeline-when-response.tone-red { background: var(--pill-red-bg); color: var(--pill-red-text); }
+.timeline-when-relative {
+  font-size: 10px;
+  margin-top: 2px;
+  text-transform: lowercase;
+}
+
 /* Compact variant — used in Overview's "Recent activity" section so it
-   visually matches the Activity tab while taking less vertical room. */
+   visually matches the Activity tab while taking less vertical room.
+   This variant keeps the legacy 2-col layout (no date column). */
 .timeline-compact .timeline-item {
   padding: 6px 0;
+  grid-template-columns: 28px 1fr;
+}
+.timeline-compact .timeline-when {
+  display: none;
 }
 .timeline-compact .timeline-time {
   font-size: 11px;

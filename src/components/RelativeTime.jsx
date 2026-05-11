@@ -48,6 +48,24 @@ export function formatDateTime(iso) {
   });
 }
 
+// Date-only ("May 8") — used as the prominent date column in the Activity feed
+export function formatDateOnly(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric',
+    timeZone: TZ,
+  });
+}
+
+// Time-only ("10:32 AM") — used in the date column under the date
+export function formatTimeOnly(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit',
+    timeZone: TZ,
+  });
+}
+
 export default function RelativeTime({ iso }) {
   return <span title={formatFullDate(iso)}>{formatRelative(iso)}</span>;
 }

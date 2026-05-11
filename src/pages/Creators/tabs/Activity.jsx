@@ -6,7 +6,9 @@ import {
 } from 'lucide-react';
 import { useEventStore } from '../../../store/useEventStore.jsx';
 import { selectActivityFeed } from '../../../domain/selectors.js';
-import { formatRelative, formatFullDate, formatDateTime } from '../../../components/RelativeTime.jsx';
+import {
+  formatRelative, formatFullDate, formatDateOnly, formatTimeOnly,
+} from '../../../components/RelativeTime.jsx';
 import { EVENT_TYPES as E } from '../../../domain/events.js';
 
 // icon + dot color per event type
@@ -249,6 +251,18 @@ export default function ActivityTab({ creator }) {
             const actorLabel = ACTOR_LABEL[event.actor?.kind] ?? null;
             return (
               <li key={event.id} className={`timeline-item actor-${event.actor?.kind ?? 'system'}`}>
+                {/* Date column — prominent date, time below, response duration
+                    below time when applicable (Katie May 8). */}
+                <div className="timeline-when" title={formatFullDate(event.timestamp)}>
+                  <div className="timeline-when-date">{formatDateOnly(event.timestamp)}</div>
+                  <div className="timeline-when-time">{formatTimeOnly(event.timestamp)}</div>
+                  {response && (
+                    <div className={`timeline-when-response tone-${tone}`} title={`${response.duration} ${response.label}`}>
+                      {response.duration} {response.label}
+                    </div>
+                  )}
+                  <div className="timeline-when-relative muted">{formatRelative(event.timestamp)}</div>
+                </div>
                 <span className={`timeline-dot tone-${tone}`}>
                   <Icon size={14} />
                 </span>
@@ -258,17 +272,8 @@ export default function ActivityTab({ creator }) {
                     {actorLabel && (
                       <span className={`timeline-actor-badge tone-${tone}`}>{actorLabel}</span>
                     )}
-                    {response && (
-                      <span className="timeline-response" title={`${response.duration} ${response.label}`}>
-                        {response.duration} {response.label}
-                      </span>
-                    )}
                   </div>
                   {sub && <div className="timeline-sub">{sub}</div>}
-                  <div className="timeline-time" title={formatFullDate(event.timestamp)}>
-                    {formatDateTime(event.timestamp)}
-                    <span className="timeline-time-relative muted"> · {formatRelative(event.timestamp)}</span>
-                  </div>
                 </div>
               </li>
             );
