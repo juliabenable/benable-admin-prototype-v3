@@ -242,26 +242,31 @@ export default function ActivityTab({ creator }) {
         <div className="tab-empty">No activity yet.</div>
       ) : (
         <ol className="timeline">
-          {feed.map((event) => {
+          {feed.map((event, i) => {
             const meta = EVENT_META[event.type] ?? { label: event.type, icon: AlertCircle, tone: 'gray' };
             const Icon = meta.icon;
             const tone = actorTone(event.actor, meta.tone);
             const sub = eventSubline(event, campaigns, brands);
             const response = computeResponseTime(event, feed);
             const actorLabel = ACTOR_LABEL[event.actor?.kind] ?? null;
+            // Group by day — only render date + relative on the first item
+            // of a date run (Katie May 8). Time is shown on every item.
+            const dateLabel = formatDateOnly(event.timestamp);
+            const prevDateLabel = i > 0 ? formatDateOnly(feed[i - 1].timestamp) : null;
+            const isNewDay = dateLabel !== prevDateLabel;
             return (
-              <li key={event.id} className={`timeline-item actor-${event.actor?.kind ?? 'system'}`}>
-                {/* Date column — prominent date, time below, response duration
-                    below time when applicable (Katie May 8). */}
+              <li
+                key={event.id}
+                className={`timeline-item actor-${event.actor?.kind ?? 'system'} ${isNewDay ? 'new-day' : 'same-day'}`}
+              >
                 <div className="timeline-when" title={formatFullDate(event.timestamp)}>
-                  <div className="timeline-when-date">{formatDateOnly(event.timestamp)}</div>
-                  <div className="timeline-when-time">{formatTimeOnly(event.timestamp)}</div>
-                  {response && (
-                    <div className={`timeline-when-response tone-${tone}`} title={`${response.duration} ${response.label}`}>
-                      {response.duration} {response.label}
-                    </div>
+                  {isNewDay && (
+                    <>
+                      <div className="timeline-when-date">{dateLabel}</div>
+                      <div className="timeline-when-relative muted">{formatRelative(event.timestamp)}</div>
+                    </>
                   )}
-                  <div className="timeline-when-relative muted">{formatRelative(event.timestamp)}</div>
+                  <div className="timeline-when-time">{formatTimeOnly(event.timestamp)}</div>
                 </div>
                 <span className={`timeline-dot tone-${tone}`}>
                   <Icon size={14} />
@@ -271,6 +276,11 @@ export default function ActivityTab({ creator }) {
                     <span className="timeline-label">{meta.label}</span>
                     {actorLabel && (
                       <span className={`timeline-actor-badge tone-${tone}`}>{actorLabel}</span>
+                    )}
+                    {response && (
+                      <span className="timeline-response" title={`${response.duration} ${response.label}`}>
+                        {response.duration} {response.label}
+                      </span>
                     )}
                   </div>
                   {sub && <div className="timeline-sub">{sub}</div>}
