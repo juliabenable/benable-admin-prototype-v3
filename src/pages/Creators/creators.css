@@ -388,31 +388,30 @@
   justify-content: center;
 }
 
-/* "View in Benable" — outlined blue button top-right of the header.
-   Made deliberately visible (border + background) so it's hard to miss. */
+/* "View in Benable" — grey neutral button top-right of the header. */
 .btn-view-in-benable {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
-  border: 1px solid #93C5FD;
+  border: 0;
   border-radius: var(--radius-sm);
-  background: #FFFFFF;
-  color: #2563EB;
+  background: var(--color-surface-2);
+  color: var(--color-text);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
   margin-top: 2px;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: background 120ms ease, color 120ms ease;
 }
 .btn-view-in-benable:hover {
-  background: #EFF6FF;
-  border-color: #2563EB;
+  background: var(--color-surface-3, #E5E7EB);
+  color: var(--color-text);
 }
 .btn-view-in-benable:focus-visible {
-  outline: 2px solid #2563EB;
+  outline: 2px solid var(--color-text-muted);
   outline-offset: 2px;
 }
 
