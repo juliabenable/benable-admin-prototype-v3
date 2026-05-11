@@ -19,7 +19,7 @@ import AssignToPool from './modals/AssignToPool.jsx';
 import SendNudge from './modals/SendNudge.jsx';
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
-  selectCreatorCampaigns, selectAllTags, selectCreatorScores, overallScoreColor,
+  selectCreatorCampaigns, selectAllTags, selectCreatorScores,
 } from '../../domain/selectors.js';
 
 const TABS = [
@@ -112,25 +112,6 @@ export default function ProfilePanel({ entry, onClose }) {
                 />
               )}
               <PortalStatusPill status={status} />
-              {scores.overall != null && (
-                <span
-                  className={`overall-score-pill tone-${overallScoreColor(scores.overall)}`}
-                  title={
-                    scores.overallMode === 'composite'
-                      ? `Overall = 0.6·R(${scores.reliability?.toFixed(1)}) + 0.4·Q(${scores.quality?.toFixed(1)})`
-                      : scores.overallMode === 'reliability-only'
-                      ? `Reliability only · no quality ratings yet`
-                      : `Quality only · no reliability data`
-                  }
-                >
-                  {scores.overall.toFixed(1)}
-                </span>
-              )}
-              {scores.overall == null && scores.isNew && (
-                <span className="overall-score-pill tone-gray" title="No history yet">
-                  New
-                </span>
-              )}
               {activeCampaignCount > 0 && (
                 <Pill color="purple">{activeCampaignCount} active</Pill>
               )}
@@ -141,12 +122,18 @@ export default function ProfilePanel({ entry, onClose }) {
               {creator.locationCity && (
                 <span className="muted"> · {creator.locationCity}</span>
               )}
-              {scores.reliability != null && (
-                <span className="muted">
-                  {' · '}Reliability {scores.reliability.toFixed(1)}/10
-                </span>
-              )}
             </div>
+
+            {/* Reliability on its own line — no colored pill (Katie May 8) */}
+            {scores.reliability != null && (
+              <div className="profile-header-reliability">
+                <span className="muted">Reliability</span>{' '}
+                <span className="profile-header-reliability-val">
+                  {scores.reliability.toFixed(1)}
+                </span>
+                <span className="muted">/10</span>
+              </div>
+            )}
 
             {creator.contentNiche && (
               <div className="profile-header-bio">{creator.contentNiche}</div>
@@ -198,17 +185,23 @@ export default function ProfilePanel({ entry, onClose }) {
             </div>
           </div>
 
-          {creator.benableHandle && (
-            <a
-              href={`https://benable.com/${creator.benableHandle}`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-view-in-benable"
-              title={`benable.com/${creator.benableHandle}`}
-            >
-              <ExternalLink size={13} /> View in Benable
-            </a>
-          )}
+          {(() => {
+            // Defensive fallback so the button always shows. Falls back to
+            // creator.handle (sans @) if benableHandle is somehow missing.
+            const path = creator.benableHandle ?? creator.handle?.replace(/^@/, '');
+            if (!path) return null;
+            return (
+              <a
+                href={`https://benable.com/${path}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-view-in-benable"
+                title={`benable.com/${path}`}
+              >
+                <ExternalLink size={14} /> View in Benable
+              </a>
+            );
+          })()}
         </div>
 
         {/* Stat tiles — Reliability + Top tags removed per Katie May 8.
