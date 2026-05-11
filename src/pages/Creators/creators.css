@@ -489,6 +489,23 @@
   background: var(--color-surface-2);
   border-radius: var(--radius-sm);
 }
+.overview-pool-row.clickable {
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+  border: 1px solid transparent;
+}
+.overview-pool-row.clickable:hover {
+  background: var(--color-surface-3, #EEF1F5);
+  border-color: var(--color-border);
+}
+.overview-pool-row.clickable:focus-visible {
+  outline: 2px solid var(--color-accent, #6D28D9);
+  outline-offset: 2px;
+}
+.overview-row-chev {
+  color: var(--color-text-subtle);
+  flex-shrink: 0;
+}
 .overview-pool-name { font-weight: 600; font-size: 13px; }
 
 .overview-campaign-list {
@@ -503,6 +520,19 @@
   background: var(--color-surface-2);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
+}
+.overview-campaign-row.clickable {
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+  border: 1px solid transparent;
+}
+.overview-campaign-row.clickable:hover {
+  background: var(--color-surface-3, #EEF1F5);
+  border-color: var(--color-border);
+}
+.overview-campaign-row.clickable:focus-visible {
+  outline: 2px solid var(--color-accent, #6D28D9);
+  outline-offset: 2px;
 }
 .overview-campaign-head {
   display: flex;
@@ -524,6 +554,32 @@
   gap: 1px;
 }
 .overview-campaign-stage-val { font-size: 13px; font-weight: 500; }
+.overview-campaign-stage-val.tone-gray { color: var(--color-text); }
+.overview-campaign-stage-val.tone-yellow { color: #B45309; }
+.overview-campaign-stage-val.tone-red { color: #B91C1C; }
+
+/* Stalled badge — used in Overview campaigns + Campaigns tab */
+.stalled-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.stalled-flag.tone-yellow {
+  background: var(--pill-yellow-bg);
+  color: var(--pill-yellow-text);
+  border-color: var(--pill-yellow-border);
+}
+.stalled-flag.tone-red {
+  background: var(--pill-red-bg);
+  color: var(--pill-red-text);
+  border-color: var(--pill-red-border);
+}
 .overview-campaign-rating {
   display: inline-flex;
   align-items: center;
@@ -627,6 +683,14 @@
   bottom: 12px;
   width: 2px;
   background: var(--color-border);
+}
+/* Compact variant — used in Overview's "Recent activity" section so it
+   visually matches the Activity tab while taking less vertical room. */
+.timeline-compact .timeline-item {
+  padding: 6px 0;
+}
+.timeline-compact .timeline-time {
+  font-size: 11px;
 }
 .timeline-item {
   display: grid;
@@ -1203,9 +1267,59 @@
 /* ─────────────────────────────────────────
    Campaigns tab v2 — decision badges + pools
    ───────────────────────────────────────── */
+/* Headline stage row in the campaign tile — promotes Stage + time-in-stage
+   so "what needs attention" reads at a glance (Katie May 8). */
+.campaign-stage-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: end;
+  padding: 10px 12px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+}
+.campaign-stage-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.campaign-stage-prom {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.campaign-stage-age-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-end;
+}
+.campaign-stage-age {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.campaign-stage-age.tone-gray { color: var(--color-text); }
+.campaign-stage-age.tone-yellow { color: #B45309; }
+.campaign-stage-age.tone-red { color: #B91C1C; }
+
+/* Outline accent on stalled tiles — subtle left border so the eye lands fast */
+.campaign-card.stalled-yellow {
+  box-shadow: inset 3px 0 0 0 #F59E0B;
+}
+.campaign-card.stalled-red {
+  box-shadow: inset 3px 0 0 0 #DC2626;
+}
+
 .campaign-decisions {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.4fr) minmax(140px, 1fr);
+  grid-template-columns: minmax(160px, 1fr) minmax(220px, 1.4fr);
   gap: 18px;
   margin-bottom: 12px;
 }

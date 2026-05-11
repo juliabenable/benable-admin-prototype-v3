@@ -10,7 +10,7 @@ import { formatRelative, formatFullDate, formatDateTime } from '../../../compone
 import { EVENT_TYPES as E } from '../../../domain/events.js';
 
 // icon + dot color per event type
-const EVENT_META = {
+export const EVENT_META = {
   [E.CREATOR_ADDED]: { label: 'Added to system', icon: UserPlus, tone: 'gray' },
   [E.PORTAL_INVITE_SENT]: { label: 'Portal invite sent', icon: Mail, tone: 'gray' },
   [E.PORTAL_INVITE_VIEWED]: { label: 'Portal invite viewed', icon: Eye, tone: 'gray' },
@@ -97,7 +97,7 @@ const RESPONSE_PAIRS = {
 // For a given creator action event, find the previous prompting event in the same
 // scope (campaign or portal) and return the delta + label. Only returns a result
 // if the response makes sense (creator-side action with a prior prompt).
-function computeResponseTime(event, allCreatorEvents) {
+export function computeResponseTime(event, allCreatorEvents) {
   const pair = RESPONSE_PAIRS[event.type];
   if (!pair) return null;
   // Find the most recent prompting event BEFORE this one
@@ -119,7 +119,7 @@ function computeResponseTime(event, allCreatorEvents) {
 }
 
 // Map actor.kind → tone for the timeline dot
-function actorTone(actor, fallbackTone) {
+export function actorTone(actor, fallbackTone) {
   if (!actor) return fallbackTone;
   if (actor.kind === 'brand') return 'yellow';
   if (actor.kind === 'creator') return 'purple';
@@ -127,14 +127,14 @@ function actorTone(actor, fallbackTone) {
   return fallbackTone;
 }
 
-const ACTOR_LABEL = {
+export const ACTOR_LABEL = {
   ops: 'Ops',
   brand: 'Brand',
   creator: 'Creator',
   system: 'System',
 };
 
-function eventSubline(event, campaigns, brands = []) {
+export function eventSubline(event, campaigns, brands = []) {
   const campaign = event.campaignId ? campaigns.find((c) => c.id === event.campaignId) : null;
   const brand = event.brandId ? brands.find((b) => b.id === event.brandId) : null;
   const actorName = event.actor?.name;
@@ -214,9 +214,12 @@ function eventSubline(event, campaigns, brands = []) {
 
 export default function ActivityTab({ creator }) {
   const { events, campaigns, brands } = useEventStore();
-  // Notes composer moved to Overview tab per Katie May 7. Activity tab is
-  // now read-only timeline; notes still appear inline as NOTE_ADDED entries.
-  const feed = useMemo(() => selectActivityFeed(events, creator.id), [events, creator.id]);
+  // Notes are NOT part of the activity feed (Katie May 8). Notes live solely
+  // in the Overview tab; this timeline is brand/creator/ops events only.
+  const feed = useMemo(
+    () => selectActivityFeed(events, creator.id).filter((e) => e.type !== E.NOTE_ADDED),
+    [events, creator.id],
+  );
 
   return (
     <div className="activity-tab">

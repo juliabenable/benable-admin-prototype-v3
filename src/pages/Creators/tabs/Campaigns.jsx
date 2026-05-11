@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, ChevronDown, Check, X as XIcon, Clock, HelpCircle } from 'lucide-react';
+import { Plus, ChevronDown, Check, X as XIcon, Clock, HelpCircle, AlertTriangle } from 'lucide-react';
 import { useEventStore } from '../../../store/useEventStore.jsx';
 import {
   selectCreatorCampaigns, selectCreatorBrandPools, TODAY_ISO,
@@ -21,9 +21,21 @@ const SIMULATE_OPTIONS = [
   { type: E.PRODUCT_SHIPPED, label: 'Product shipped' },
 ];
 
+function stageAgeDays(iso) {
+  if (!iso) return 0;
+  return Math.max(0, Math.floor((Date.parse(TODAY_ISO) - Date.parse(iso)) / 86400000));
+}
+
+function stageAgeTone(days) {
+  // Traffic light per Katie May 8: clear "what needs attention".
+  if (days >= 14) return 'red';
+  if (days >= 7) return 'yellow';
+  return 'gray';
+}
+
 function timeInStage(iso) {
   if (!iso) return '—';
-  const days = Math.max(0, Math.floor((Date.parse(TODAY_ISO) - Date.parse(iso)) / 86400000));
+  const days = stageAgeDays(iso);
   if (days === 0) return 'today';
   if (days === 1) return '1 day';
   if (days < 30) return `${days} days`;
@@ -128,18 +140,44 @@ export default function CampaignsTab({ creator, onOpenAssign }) {
             const cDec = creatorDecision(c.stage);
             const bDec = brandDecisionKind(c.brandDecision);
             const menuKey = c.campaign.id;
+            const ageDays = stageAgeDays(c.lastUpdate);
+            const ageTone = stageAgeTone(ageDays);
+            const stalled = ageDays >= 7;
             return (
-              <li key={c.campaign.id} className="campaign-card">
+              <li key={c.campaign.id} className={`campaign-card ${stalled ? `stalled-${ageTone}` : ''}`}>
                 <div className="campaign-card-head">
                   <div className="campaign-title">
                     <span className="campaign-brand">{c.campaign.brandHandle}</span>
                     <span className="muted">·</span>
                     <span className="campaign-name">{c.campaign.name}</span>
                   </div>
-                  <Pill color="green">Live</Pill>
+                  <div className="row gap-2">
+                    {stalled && (
+                      <span className={`stalled-flag tone-${ageTone}`}>
+                        <AlertTriangle size={11} /> Stalled {ageDays}d
+                      </span>
+                    )}
+                    <Pill color="green">Live</Pill>
+                  </div>
                 </div>
 
-                {/* The 4 statuses Katie wanted: creator × brand decisions */}
+                {/* Headline row — Stage is the primary signal, time-in-stage uses
+                    traffic-light tone so "what needs attention" reads at a glance. */}
+                <div className="campaign-stage-row">
+                  <div className="campaign-stage-main">
+                    <div className="muted micro">Stage</div>
+                    <div className="campaign-stage-prom">{c.stageLabel}</div>
+                  </div>
+                  <div className="campaign-stage-age-wrap">
+                    <div className="muted micro">Time in stage</div>
+                    <div className={`campaign-stage-age tone-${ageTone}`}>
+                      {stalled && <AlertTriangle size={12} />}
+                      {timeInStage(c.lastUpdate)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Secondary row — the two decisions */}
                 <div className="campaign-decisions">
                   <div className="campaign-decision-cell">
                     <div className="muted micro">Creator decision</div>
@@ -175,11 +213,6 @@ export default function CampaignsTab({ creator, onOpenAssign }) {
                         )}
                       </div>
                     </div>
-                  </div>
-                  <div className="campaign-decision-cell">
-                    <div className="muted micro">Stage</div>
-                    <span className="campaign-stage-text">{c.stageLabel}</span>
-                    <span className="muted small">{timeInStage(c.lastUpdate)} in stage</span>
                   </div>
                 </div>
 

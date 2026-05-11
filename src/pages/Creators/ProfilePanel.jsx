@@ -235,7 +235,7 @@ export default function ProfilePanel({ entry, onClose }) {
       </nav>
 
       <div className="profile-tab-body">
-        {tab === 'overview' && <OverviewTab creator={creator} onSwitchTab={setTab} />}
+        {tab === 'overview' && <OverviewTab creator={creator} onSwitchTab={setTab} onClose={onClose} />}
         {tab === 'activity' && <ActivityTab creator={creator} focusNoteKey={focusNote} />}
         {tab === 'campaigns' && (
           <CampaignsTab creator={creator} onOpenAssign={() => setAssignOpen(true)} />

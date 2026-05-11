@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, Sparkles, Star, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Star, MessageCircle, AlertTriangle, ChevronRight, AlertCircle } from 'lucide-react';
 import { useEventStore } from '../../../store/useEventStore.jsx';
 import {
   selectCreatorCampaigns, selectActivityFeed, selectCreatorBrandPools,
@@ -7,9 +8,12 @@ import {
 } from '../../../domain/selectors.js';
 import { useToast } from '../../../components/Toast.jsx';
 import Pill from '../../../components/Pill.jsx';
-import { formatRelative, formatFullDate, formatDateTimeShort } from '../../../components/RelativeTime.jsx';
+import { formatRelative, formatFullDate, formatDateTime, formatDateTimeShort } from '../../../components/RelativeTime.jsx';
 import { EVENT_TYPES as E } from '../../../domain/events.js';
 import BrandLogo from '../../Brands/BrandLogo.jsx';
+import {
+  EVENT_META, ACTOR_LABEL, actorTone, eventSubline,
+} from './Activity.jsx';
 
 const STATUS_PILL = {
   live: { label: 'Live', color: 'green' },
@@ -24,9 +28,20 @@ const POOL_STATUS_PILL = {
   archived: { label: 'Archived', color: 'gray' },
 };
 
+function stageAgeDays(iso) {
+  if (!iso) return 0;
+  return Math.max(0, Math.floor((Date.parse(TODAY_ISO) - Date.parse(iso)) / 86400000));
+}
+
+function stageAgeTone(days) {
+  if (days >= 14) return 'red';
+  if (days >= 7) return 'yellow';
+  return 'gray';
+}
+
 function timeInStage(iso) {
   if (!iso) return '—';
-  const days = Math.max(0, Math.floor((Date.parse(TODAY_ISO) - Date.parse(iso)) / 86400000));
+  const days = stageAgeDays(iso);
   if (days === 0) return 'today';
   if (days === 1) return '1 day';
   if (days < 30) return `${days} days`;
@@ -34,9 +49,10 @@ function timeInStage(iso) {
   return `${Math.round(days / 30)} months`;
 }
 
-export default function OverviewTab({ creator, onSwitchTab }) {
+export default function OverviewTab({ creator, onSwitchTab, onClose }) {
   const { events, campaigns, brands, appendEvent } = useEventStore();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const creatorCampaigns = useMemo(
     () => selectCreatorCampaigns(events, creator.id, campaigns),
@@ -51,9 +67,11 @@ export default function OverviewTab({ creator, onSwitchTab }) {
   );
   const completedCampaigns = creatorCampaigns.filter((c) => c.campaign.status === 'completed');
 
-  // Pull the top 3 most recent activity events
+  // Top 3 most recent activity events — notes are EXCLUDED (live in Notes section)
   const recentActivity = useMemo(
-    () => selectActivityFeed(events, creator.id).slice(0, 3),
+    () => selectActivityFeed(events, creator.id)
+      .filter((e) => e.type !== E.NOTE_ADDED)
+      .slice(0, 3),
     [events, creator.id],
   );
 
@@ -91,6 +109,21 @@ export default function OverviewTab({ creator, onSwitchTab }) {
     toast('Note added');
   }
 
+  // Navigation: close the profile panel, then route to the brand's page.
+  function goToPool(brandId) {
+    onClose?.();
+    navigate(`/admin/brands/${brandId}/pool`);
+  }
+  function goToCampaign(campaignBrandHandle, campaignId) {
+    const brand = brands.find((b) => b.handle === campaignBrandHandle);
+    onClose?.();
+    if (brand) {
+      navigate(`/admin/brands/${brand.id}/campaigns?focus=${campaignId}`);
+    } else {
+      navigate('/admin/brands');
+    }
+  }
+
   return (
     <div className="overview-tab">
       {/* ─── POOLS ─── */}
@@ -108,12 +141,21 @@ export default function OverviewTab({ creator, onSwitchTab }) {
             {pools.map(({ brand, status }) => {
               const statusMeta = POOL_STATUS_PILL[status];
               return (
-                <li key={brand.id} className="overview-pool-row">
+                <li
+                  key={brand.id}
+                  className="overview-pool-row clickable"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => goToPool(brand.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToPool(brand.id); } }}
+                  title={`Open ${brand.name} pool`}
+                >
                   <BrandLogo brand={brand} size={28} />
                   <span className="overview-pool-name">{brand.name}</span>
                   <span className="muted small">{brand.handle}</span>
                   <span style={{ flex: 1 }} />
                   <Pill color={statusMeta.color}>{statusMeta.label}</Pill>
+                  <ChevronRight size={14} className="overview-row-chev" />
                 </li>
               );
             })}
@@ -136,13 +178,32 @@ export default function OverviewTab({ creator, onSwitchTab }) {
             {creatorCampaigns.map((c) => {
               const status = STATUS_PILL[c.campaign.status] ?? STATUS_PILL.draft;
               const rating = campaignRatings.get(c.campaign.id);
+              const ageDays = stageAgeDays(c.lastUpdate);
+              const ageTone = stageAgeTone(ageDays);
+              const stalled = c.campaign.status === 'live' && ageDays >= 7;
               return (
-                <li key={c.campaign.id} className="overview-campaign-row">
+                <li
+                  key={c.campaign.id}
+                  className="overview-campaign-row clickable"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => goToCampaign(c.campaign.brandHandle, c.campaign.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToCampaign(c.campaign.brandHandle, c.campaign.id); } }}
+                  title={`Open ${c.campaign.name}`}
+                >
                   <div className="overview-campaign-head">
                     <span className="overview-campaign-name">
                       {c.campaign.brandHandle} · {c.campaign.name}
                     </span>
-                    <Pill color={status.color}>{status.label}</Pill>
+                    <div className="row gap-2">
+                      {stalled && (
+                        <span className={`stalled-flag tone-${ageTone}`} title={`Stalled ${ageDays} day${ageDays === 1 ? '' : 's'} in stage`}>
+                          <AlertTriangle size={11} /> {ageDays}d
+                        </span>
+                      )}
+                      <Pill color={status.color}>{status.label}</Pill>
+                      <ChevronRight size={14} className="overview-row-chev" />
+                    </div>
                   </div>
                   <div className="overview-campaign-meta">
                     <span className="overview-campaign-stage">
@@ -152,7 +213,9 @@ export default function OverviewTab({ creator, onSwitchTab }) {
                     {c.campaign.status !== 'completed' && (
                       <span>
                         <span className="muted micro">Time in stage</span>
-                        <span className="overview-campaign-stage-val">{timeInStage(c.lastUpdate)}</span>
+                        <span className={`overview-campaign-stage-val tone-${ageTone}`}>
+                          {timeInStage(c.lastUpdate)}
+                        </span>
                       </span>
                     )}
                     {rating != null && (
@@ -168,7 +231,7 @@ export default function OverviewTab({ creator, onSwitchTab }) {
         )}
       </section>
 
-      {/* ─── RECENT ACTIVITY (top 3) ─── */}
+      {/* ─── RECENT ACTIVITY (top 3, matches Activity-tab timeline design) ─── */}
       <section className="overview-section">
         <div className="overview-section-head">
           <h3>Recent activity</h3>
@@ -181,35 +244,39 @@ export default function OverviewTab({ creator, onSwitchTab }) {
               View all <ArrowRight size={11} />
             </button>
           )}
-        </div>{/* recent activity body unchanged below */}
+        </div>
         {recentActivity.length === 0 ? (
           <div className="overview-empty">No activity yet.</div>
         ) : (
-          <ul className="overview-activity-list">
+          <ol className="timeline timeline-compact">
             {recentActivity.map((event) => {
-              const campaign = event.campaignId ? campaigns.find((c) => c.id === event.campaignId) : null;
-              const brand = event.brandId ? brands.find((b) => b.id === event.brandId) : null;
-              const ctx = campaign
-                ? `${campaign.brandHandle} · ${campaign.name}`
-                : (brand ? `${brand.name} pool` : '');
-              const label = humanizeEventType(event.type);
-              const actor = event.actor?.kind ?? 'system';
+              const meta = EVENT_META[event.type] ?? { label: event.type, icon: AlertCircle, tone: 'gray' };
+              const Icon = meta.icon;
+              const tone = actorTone(event.actor, meta.tone);
+              const sub = eventSubline(event, campaigns, brands);
+              const actorLabel = ACTOR_LABEL[event.actor?.kind] ?? null;
               return (
-                <li key={event.id} className={`overview-activity-row actor-${actor}`}>
-                  <span className={`timeline-dot tone-${actorTone(actor)}`} style={{ width: 22, height: 22 }}>
-                    <Sparkles size={11} />
+                <li key={event.id} className={`timeline-item actor-${event.actor?.kind ?? 'system'}`}>
+                  <span className={`timeline-dot tone-${tone}`}>
+                    <Icon size={14} />
                   </span>
-                  <div className="overview-activity-body">
-                    <div className="overview-activity-label">{label}</div>
-                    {ctx && <div className="muted small">{ctx}</div>}
-                    <div className="muted small" title={formatFullDate(event.timestamp)}>
-                      {formatRelative(event.timestamp)}
+                  <div className="timeline-body">
+                    <div className="timeline-label-row">
+                      <span className="timeline-label">{meta.label}</span>
+                      {actorLabel && (
+                        <span className={`timeline-actor-badge tone-${tone}`}>{actorLabel}</span>
+                      )}
+                    </div>
+                    {sub && <div className="timeline-sub">{sub}</div>}
+                    <div className="timeline-time" title={formatFullDate(event.timestamp)}>
+                      {formatDateTime(event.timestamp)}
+                      <span className="timeline-time-relative muted"> · {formatRelative(event.timestamp)}</span>
                     </div>
                   </div>
                 </li>
               );
             })}
-          </ul>
+          </ol>
         )}
       </section>
 
@@ -265,41 +332,4 @@ export default function OverviewTab({ creator, onSwitchTab }) {
       </section>
     </div>
   );
-}
-
-function actorTone(actorKind) {
-  if (actorKind === 'creator') return 'purple';
-  if (actorKind === 'brand') return 'yellow';
-  if (actorKind === 'ops') return 'blue';
-  return 'gray';
-}
-
-function humanizeEventType(t) {
-  // Friendly labels for the most common events; fallback to a snake-case translation
-  const map = {
-    [E.CREATOR_ADDED]: 'Added to system',
-    [E.PORTAL_INVITE_SENT]: 'Portal invite sent',
-    [E.PORTAL_INVITE_VIEWED]: 'Portal invite viewed',
-    [E.ONBOARDING_COMPLETED]: 'Onboarding complete',
-    [E.NUDGE_SENT]: 'Nudge sent',
-    [E.NOTE_ADDED]: 'Note added',
-    [E.ASSIGNED_TO_CAMPAIGN]: 'Assigned to campaign',
-    [E.CAMPAIGN_ACCEPTED]: 'Accepted campaign',
-    [E.CAMPAIGN_DECLINED]: 'Declined campaign',
-    [E.PRODUCT_SELECTED]: 'Products selected',
-    [E.ORDER_PLACED]: 'Order placed',
-    [E.PRODUCT_SHIPPED]: 'Product shipped',
-    [E.DELIVERY_CONFIRMED]: 'Delivery confirmed',
-    [E.CONTENT_SUBMITTED]: 'Content submitted',
-    [E.CONTENT_APPROVED]: 'Content approved',
-    [E.CONTENT_LIVE]: 'Content live',
-    [E.BRAND_INVITED]: 'Invited by brand',
-    [E.BRAND_ACCEPTED]: 'Accepted by brand',
-    [E.BRAND_REJECTED]: 'Rejected by brand',
-    [E.BRAND_POOL_ADDED]: 'Added to brand pool',
-    [E.BRAND_POOL_QUALIFIED]: 'Qualified for brand',
-    [E.AI_CARD_REVIEWED]: 'AI card reviewed',
-    [E.CAMPAIGN_RATED]: 'Campaign rated',
-  };
-  return map[t] ?? t.replace(/_/g, ' ').toLowerCase();
 }
