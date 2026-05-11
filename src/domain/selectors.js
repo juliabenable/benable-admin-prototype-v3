@@ -63,6 +63,15 @@ function reducePortalStage(events) {
       case E.ONBOARDING_COMPLETED:
         setStage('IN_PORTAL', e.timestamp);
         break;
+      case E.PORTAL_STATUS_RESET: {
+        // Manual ops override (forward, lateral, or backward). Payload.to is
+        // one of NOT_IN_PROGRAM | INVITED | IN_PORTAL.
+        const to = e.payload?.to;
+        if (to === 'NOT_IN_PROGRAM' || to === 'INVITED' || to === 'IN_PORTAL') {
+          setStage(to, e.timestamp);
+        }
+        break;
+      }
       default:
         break;
     }

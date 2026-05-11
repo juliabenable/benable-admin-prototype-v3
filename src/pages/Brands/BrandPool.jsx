@@ -221,18 +221,28 @@ export default function BrandPool() {
     toast('Unarchived — back to Potential');
   }
 
-  // Portal status transitions (per Katie May 7): Not → Invited → In Program
+  // Portal status transitions.
+  // Forward moves fire the natural events so the timeline reads correctly.
+  // Backward / lateral moves fire PORTAL_STATUS_RESET (a manual ops override)
+  // since events are append-only and there is no inverse for invite/onboarding.
   function transitionPortalStatus(creatorId, fromKind, toKind) {
     if (fromKind === toKind) return;
-    if (toKind === 'INVITED') {
-      appendEvent({
-        type: 'PORTAL_INVITE_SENT',
-        creatorId,
-        actor: { kind: 'ops', name: 'Julia' },
-      });
-      toast('Portal invite sent');
-    } else if (toKind === 'IN_PORTAL') {
-      // If they were Not in Program, send invite first then mark complete
+
+    const isForward =
+      (fromKind === 'NOT_IN_PROGRAM' && (toKind === 'INVITED' || toKind === 'IN_PORTAL'))
+      || (fromKind === 'INVITED' && toKind === 'IN_PORTAL');
+
+    if (isForward) {
+      if (toKind === 'INVITED') {
+        appendEvent({
+          type: 'PORTAL_INVITE_SENT',
+          creatorId,
+          actor: { kind: 'ops', name: 'Julia' },
+        });
+        toast('Portal invite sent');
+        return;
+      }
+      // toKind === 'IN_PORTAL'
       if (fromKind === 'NOT_IN_PROGRAM') {
         appendEvent({
           type: 'PORTAL_INVITE_SENT',
@@ -247,9 +257,22 @@ export default function BrandPool() {
         payload: { manualOverride: true },
       });
       toast('Marked as In Creator Program');
+      return;
     }
-    // Going backwards (e.g., In → Invited) is intentionally not supported
-    // since events are append-only and that would require a new event type.
+
+    // Backward or lateral move — manual ops override
+    appendEvent({
+      type: 'PORTAL_STATUS_RESET',
+      creatorId,
+      actor: { kind: 'ops', name: 'Julia' },
+      payload: { to: toKind, from: fromKind, manualOverride: true },
+    });
+    const labels = {
+      NOT_IN_PROGRAM: 'Not in Creator Program',
+      INVITED: 'Invited to Creator Program',
+      IN_PORTAL: 'In Creator Program',
+    };
+    toast(`Status reset to "${labels[toKind] ?? toKind}"`);
   }
 
   // Format date as "May 7, 2026"

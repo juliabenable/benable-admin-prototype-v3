@@ -9,6 +9,10 @@ export const EVENT_TYPES = {
   ONBOARDING_STARTED: 'ONBOARDING_STARTED',
   ONBOARDING_PARTIAL: 'ONBOARDING_PARTIAL',
   ONBOARDING_COMPLETED: 'ONBOARDING_COMPLETED',
+  // Manual ops override — used when ops needs to move someone backward or
+  // laterally between portal states (e.g. revoke an invite, demote from
+  // In Creator Program back to Invited or Not in Program). Payload: { to }.
+  PORTAL_STATUS_RESET: 'PORTAL_STATUS_RESET',
   PREFERENCES_EMAIL_SENT: 'PREFERENCES_EMAIL_SENT',
   NUDGE_SENT: 'NUDGE_SENT',
   NOTE_ADDED: 'NOTE_ADDED',

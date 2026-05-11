@@ -5,13 +5,15 @@ import { ChevronDown, Check } from 'lucide-react';
  * Portal Status pill — exactly one of three states per spec (Katie, May 7):
  *   - "Not in Creator Program" (gray)
  *   - "Invited to Creator Program" (yellow)
- *   - "In Creator Program" (green, terminal)
+ *   - "In Creator Program" (green)
  *
- * Now a real dropdown that lets ops transition between states. Selecting a
- * higher state fires the appropriate underlying event:
- *   Not → Invited: PORTAL_INVITE_SENT
+ * Real dropdown — ops can transition between any pair of states.
+ * Forward moves fire the natural events:
+ *   Not → Invited:        PORTAL_INVITE_SENT
  *   Invited → In Program: ONBOARDING_COMPLETED
- *   Not → In Program: PORTAL_INVITE_SENT then ONBOARDING_COMPLETED
+ *   Not → In Program:     PORTAL_INVITE_SENT then ONBOARDING_COMPLETED
+ * Backward / lateral moves fire a PORTAL_STATUS_RESET event (manual override)
+ * since events are append-only and there is no inverse for invite/onboarding.
  */
 
 const STATES = [

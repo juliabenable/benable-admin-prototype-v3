@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import {
   UserPlus, Mail, Eye, X, PlayCircle, CheckCircle2, AlertCircle, ListChecks,
   ShoppingCart, Truck, Package, Send, Edit3, Globe, Star,
-  ThumbsUp, ThumbsDown, Eye as EyeIcon, Clock, StickyNote,
+  ThumbsUp, ThumbsDown, Eye as EyeIcon, Clock, StickyNote, RotateCcw,
 } from 'lucide-react';
 import { useEventStore } from '../../../store/useEventStore.jsx';
 import { selectActivityFeed } from '../../../domain/selectors.js';
@@ -18,6 +18,7 @@ export const EVENT_META = {
   [E.ONBOARDING_STARTED]: { label: 'Onboarding started', icon: PlayCircle, tone: 'purple' },
   [E.ONBOARDING_PARTIAL]: { label: 'Onboarding partially completed', icon: AlertCircle, tone: 'yellow' },
   [E.ONBOARDING_COMPLETED]: { label: 'Onboarding complete', icon: CheckCircle2, tone: 'green' },
+  [E.PORTAL_STATUS_RESET]: { label: 'Portal status reset', icon: RotateCcw, tone: 'gray' },
   [E.PREFERENCES_EMAIL_SENT]: { label: 'Collab preferences email sent', icon: Mail, tone: 'gray' },
   [E.NUDGE_SENT]: { label: 'Nudge sent', icon: Send, tone: 'purple' },
   [E.NOTE_ADDED]: { label: 'Note added', icon: StickyNote, tone: 'yellow' },
@@ -181,6 +182,17 @@ export function eventSubline(event, campaigns, brands = []) {
         : `Added by ${actorName ?? 'Ops'}`;
     case E.PORTAL_INVITE_SENT:
       return `Email sent by ${actorName ?? 'ops'}`;
+    case E.PORTAL_STATUS_RESET: {
+      const labels = {
+        NOT_IN_PROGRAM: 'Not in Creator Program',
+        INVITED: 'Invited to Creator Program',
+        IN_PORTAL: 'In Creator Program',
+      };
+      const to = labels[event.payload?.to] ?? event.payload?.to ?? '';
+      const from = labels[event.payload?.from] ?? event.payload?.from;
+      const direction = from ? `${from} → ${to}` : to;
+      return `${direction} · by ${actorName ?? 'ops'}`;
+    }
     case E.NUDGE_SENT: {
       const channel = event.payload?.channel ?? 'email';
       const tpl = event.payload?.templateLabel ?? event.payload?.templateId ?? 'custom';
