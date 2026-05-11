@@ -266,6 +266,7 @@
   display: flex;
   gap: 18px;
   align-items: flex-start;
+  padding-right: 44px; /* leave room for the close button top-right */
 }
 .profile-header-meta {
   flex: 1;
@@ -279,39 +280,79 @@
 }
 .profile-header-name-row h2 {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
+}
+/* Verified-style icon next to name — blue badge with white check, mirrors the
+   "verified account" pattern users recognize. Shown when AI card is reviewed. */
+.profile-verified {
+  color: #2563EB; /* blue */
+  flex-shrink: 0;
 }
 .profile-header-handle {
   font-size: 13px;
   color: var(--color-text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
+}
+.profile-header-bio {
+  font-size: 13px;
+  color: var(--color-text);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.profile-header-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
 }
 .profile-header-contact {
-  margin-top: 8px;
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
   font-size: 12px;
   color: var(--color-text-muted);
+  align-items: center;
 }
-.profile-header-contact .row { gap: 6px; }
-.profile-header-contact .social-icon {
+.profile-header-contact .contact-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--color-surface-2);
-  font-size: 9px;
-  font-weight: 700;
+  gap: 6px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+.profile-header-contact .contact-link:hover {
   color: var(--color-text);
+}
+.profile-header-socials {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 4px;
 }
 .social-icon-svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* "View in Benable" — link-style button top-right of the header */
+.btn-view-in-benable {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 4px;
+  color: #2563EB;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.btn-view-in-benable:hover {
+  text-decoration: underline;
 }
 
 .profile-actions {
@@ -321,58 +362,87 @@
   flex-wrap: wrap;
 }
 
-/* ─── Above-the-fold summary grid ─── */
-.profile-summary-grid {
-  margin-top: 14px;
+/* ─── Above-the-fold stat tiles (Katie May 8 redesign) ─── */
+.profile-stats {
+  margin-top: 16px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 10px;
+}
+.profile-stat {
   background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 12px 14px;
-}
-.profile-summary-stat { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.profile-summary-num {
-  font-size: 14px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  flex-wrap: wrap;
-  color: var(--color-text);
+  min-width: 0;
 }
-.profile-summary-num svg { color: #B45309; }
-.profile-summary-label {
+.profile-stat-label {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
 }
-.profile-summary-platform {
+.profile-stat-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.profile-stat-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+.profile-stat-suffix {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+.profile-stat-icon {
+  color: #B45309;
+  align-self: center;
+  position: relative;
+  top: 1px;
+}
+.profile-stat-platform {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-right: 8px;
-  font-variant-numeric: tabular-nums;
 }
-.profile-summary-platform-label {
-  font-size: 10px;
+.profile-stat-sep {
+  color: var(--color-text-subtle);
+  margin: 0 2px;
+}
+.profile-stat-platform-badge {
+  font-size: 9px;
   font-weight: 700;
   background: var(--color-surface);
   padding: 1px 5px;
   border-radius: 4px;
   color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  position: relative;
+  top: -1px;
 }
-.profile-summary-niche .profile-summary-num {
-  font-size: 12px;
-  font-weight: 500;
+.profile-stat-platform-num {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
 }
-.profile-summary-tags-cell .profile-summary-tags {
+.profile-stat-tags .profile-stat-tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   align-items: center;
+}
+@media (max-width: 720px) {
+  .profile-stats { grid-template-columns: repeat(2, 1fr); }
 }
 
 .profile-reviewed-badge {

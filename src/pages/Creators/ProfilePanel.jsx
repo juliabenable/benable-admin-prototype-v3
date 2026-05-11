@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
-  X, Mail, Phone, MapPin, Plus, MessageSquare, Star, CheckCircle2, Sparkles, Users,
+  X, Mail, Phone, Plus, MessageSquare, Star, Sparkles, Users,
+  BadgeCheck, ExternalLink,
 } from 'lucide-react';
 import Avatar from '../../components/Avatar.jsx';
 import Pill from '../../components/Pill.jsx';
-import { InstagramIcon, TikTokIcon, BenableIcon } from '../../components/SocialIcons.jsx';
+import { InstagramIcon, TikTokIcon } from '../../components/SocialIcons.jsx';
 import PortalStatusPill from '../../components/PortalStatusPill.jsx';
 import OverviewTab from './tabs/Overview.jsx';
 import ActivityTab from './tabs/Activity.jsx';
@@ -77,7 +78,7 @@ export default function ProfilePanel({ entry, onClose }) {
 
   return (
     <section className="profile-panel" aria-label={`Profile for ${creator.name}`}>
-      {/* ─────────────────── HEADER (above-the-fold summary) ─────────────────── */}
+      {/* ─────────────────── HEADER (redesigned per Katie May 8) ─────────────────── */}
       <header className="profile-header">
         <button type="button" className="profile-close" onClick={onClose} aria-label="Close profile">
           <X size={18} />
@@ -88,6 +89,14 @@ export default function ProfilePanel({ entry, onClose }) {
           <div className="profile-header-meta">
             <div className="profile-header-name-row">
               <h2>{creator.name}</h2>
+              {hasReviewedCard && (
+                <BadgeCheck
+                  size={18}
+                  className="profile-verified"
+                  aria-label="AI card reviewed"
+                />
+              )}
+              <PortalStatusPill status={status} />
               {scores.overall != null && (
                 <span
                   className={`overall-score-pill tone-${overallScoreColor(scores.overall)}`}
@@ -107,96 +116,114 @@ export default function ProfilePanel({ entry, onClose }) {
                   New
                 </span>
               )}
-              <PortalStatusPill status={status} />
-              {hasReviewedCard && (
-                <span className="profile-reviewed-badge" title="AI card reviewed">
-                  <CheckCircle2 size={12} /> Reviewed
-                </span>
-              )}
               {activeCampaignCount > 0 && (
                 <Pill color="purple">{activeCampaignCount} active</Pill>
               )}
             </div>
+
             <div className="profile-header-handle">
               {creator.handle}
-              {creator.benableHandle && (
-                <span className="muted small"> · benable.com/{creator.benableHandle}</span>
+              {creator.locationCity && (
+                <span className="muted"> · {creator.locationCity}</span>
               )}
             </div>
+
+            {creator.contentNiche && (
+              <div className="profile-header-bio">{creator.contentNiche}</div>
+            )}
+
+            {creator.categories?.length > 0 && (
+              <div className="profile-header-tags">
+                {creator.categories.slice(0, 3).map((t) => (
+                  <span key={t} className="tag-mini">{t}</span>
+                ))}
+              </div>
+            )}
+
             <div className="profile-header-contact">
-              <span className="row gap-1"><Mail size={13} /> {creator.email}</span>
-              {creator.phone && <span className="row gap-1"><Phone size={13} /> {creator.phone}</span>}
-              {creator.locationCity && <span className="row gap-1"><MapPin size={13} /> {creator.locationCity}</span>}
-              {creator.benableHandle && (
-                <a
-                  href={`https://benable.com/${creator.benableHandle}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="social-icon-svg"
-                  title={`benable.com/${creator.benableHandle}`}
-                >
-                  <BenableIcon size={16} />
+              <a href={`mailto:${creator.email}`} className="contact-link">
+                <Mail size={13} /> {creator.email}
+              </a>
+              {creator.phone && (
+                <a href={`tel:${creator.phone.replace(/\s+/g, '')}`} className="contact-link">
+                  <Phone size={13} /> {creator.phone}
                 </a>
               )}
-              {creator.socials?.includes('instagram') && (
-                <span className="social-icon-svg" title="Instagram"><InstagramIcon size={16} /></span>
-              )}
-              {creator.socials?.includes('tiktok') && (
-                <span className="social-icon-svg" title="TikTok"><TikTokIcon size={16} /></span>
-              )}
+              <span className="profile-header-socials">
+                {creator.socials?.includes('instagram') && (
+                  <span className="social-icon-svg" title="Instagram"><InstagramIcon size={16} /></span>
+                )}
+                {creator.socials?.includes('tiktok') && (
+                  <span className="social-icon-svg" title="TikTok"><TikTokIcon size={16} /></span>
+                )}
+              </span>
             </div>
           </div>
+
+          {creator.benableHandle && (
+            <a
+              href={`https://benable.com/${creator.benableHandle}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-view-in-benable"
+              title={`benable.com/${creator.benableHandle}`}
+            >
+              <ExternalLink size={13} /> View in Benable
+            </a>
+          )}
         </div>
 
-        {/* Above-the-fold summary metrics */}
-        <div className="profile-summary-grid">
-          {platformsWithFollowers.length > 0 && (
-            <div className="profile-summary-stat">
-              <div className="profile-summary-num">
-                {platformsWithFollowers.map((p) => (
-                  <span key={p} className="profile-summary-platform">
-                    <span className="profile-summary-platform-label">{p === 'instagram' ? 'IG' : 'TT'}</span>
-                    {formatFollowers(creator.platformStats[p].followers)}
-                  </span>
-                ))}
+        {/* Redesigned stat tiles — clearer hierarchy, less cluttered (Katie May 8) */}
+        {(platformsWithFollowers.length > 0 || scores.reliability != null || scores.quality != null) && (
+          <div className="profile-stats">
+            {platformsWithFollowers.length > 0 && (
+              <div className="profile-stat">
+                <div className="profile-stat-label">Followers</div>
+                <div className="profile-stat-value">
+                  {platformsWithFollowers.map((p, i) => (
+                    <span key={p} className="profile-stat-platform">
+                      {i > 0 && <span className="profile-stat-sep">·</span>}
+                      <span className="profile-stat-platform-badge">{p === 'instagram' ? 'IG' : 'TT'}</span>
+                      <span className="profile-stat-platform-num">
+                        {formatFollowers(creator.platformStats[p].followers)}
+                      </span>
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="profile-summary-label">Followers</div>
-            </div>
-          )}
-          {scores.reliability != null && (
-            <div className="profile-summary-stat">
-              <div className="profile-summary-num">
-                {scores.reliability.toFixed(1)}<span className="muted small"> /10</span>
+            )}
+            {scores.reliability != null && (
+              <div className="profile-stat">
+                <div className="profile-stat-label">Reliability</div>
+                <div className="profile-stat-value">
+                  <span className="profile-stat-num">{scores.reliability.toFixed(1)}</span>
+                  <span className="profile-stat-suffix">/10</span>
+                </div>
               </div>
-              <div className="profile-summary-label">Reliability</div>
-            </div>
-          )}
-          {scores.quality != null && (
-            <div className="profile-summary-stat">
-              <div className="profile-summary-num">
-                <Star size={14} fill="currentColor" /> {scores.quality.toFixed(1)}
+            )}
+            {scores.quality != null && (
+              <div className="profile-stat">
+                <div className="profile-stat-label">Quality</div>
+                <div className="profile-stat-value">
+                  <Star size={14} fill="currentColor" className="profile-stat-icon" />
+                  <span className="profile-stat-num">{scores.quality.toFixed(1)}</span>
+                  <span className="profile-stat-suffix">({scores.qualityCount})</span>
+                </div>
               </div>
-              <div className="profile-summary-label">Quality ({scores.qualityCount})</div>
-            </div>
-          )}
-          {creator.contentNiche && (
-            <div className="profile-summary-stat profile-summary-niche">
-              <div className="profile-summary-num">{creator.contentNiche}</div>
-              <div className="profile-summary-label">Niche</div>
-            </div>
-          )}
-          {tags.length > 0 && (
-            <div className="profile-summary-stat profile-summary-tags-cell">
-              <div className="profile-summary-tags">
-                {tags.slice(0, 3).map((t) => (
-                  <span key={t} className="tag-mini">{t.replace(/-/g, ' ')}</span>
-                ))}
-                {tags.length > 3 && <span className="muted small">+{tags.length - 3}</span>}
+            )}
+            {tags.length > 0 && (
+              <div className="profile-stat profile-stat-tags">
+                <div className="profile-stat-label">Top tags</div>
+                <div className="profile-stat-tag-list">
+                  {tags.slice(0, 4).map((t) => (
+                    <span key={t} className="tag-mini">{t.replace(/-/g, ' ')}</span>
+                  ))}
+                  {tags.length > 4 && <span className="muted small">+{tags.length - 4}</span>}
+                </div>
               </div>
-              <div className="profile-summary-label">Top tags</div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="profile-actions">
           <button type="button" className="btn primary" onClick={() => setAssignOpen(true)}>
