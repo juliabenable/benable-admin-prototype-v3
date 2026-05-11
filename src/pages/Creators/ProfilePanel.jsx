@@ -167,19 +167,19 @@ export default function ProfilePanel({ entry, onClose }) {
 
             <div className="profile-header-contact">
               <a href={`mailto:${creator.email}`} className="contact-link">
-                <Mail size={13} /> {creator.email}
+                <Mail size={14} /> {creator.email}
               </a>
               {creator.phone && (
                 <a href={`tel:${creator.phone.replace(/\s+/g, '')}`} className="contact-link">
-                  <Phone size={13} /> {creator.phone}
+                  <Phone size={14} /> {creator.phone}
                 </a>
               )}
               <span className="profile-header-socials">
                 {creator.socials?.includes('instagram') && (
-                  <span className="social-icon-svg" title="Instagram"><InstagramIcon size={16} /></span>
+                  <span className="social-icon-svg" title="Instagram"><InstagramIcon size={14} /></span>
                 )}
                 {creator.socials?.includes('tiktok') && (
-                  <span className="social-icon-svg" title="TikTok"><TikTokIcon size={16} /></span>
+                  <span className="social-icon-svg" title="TikTok"><TikTokIcon size={14} /></span>
                 )}
               </span>
             </div>
