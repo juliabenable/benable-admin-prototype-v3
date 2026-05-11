@@ -206,16 +206,14 @@ export default function OverviewTab({ creator, onSwitchTab, onClose }) {
                     </div>
                   </div>
                   <div className="overview-campaign-meta">
-                    <span className="overview-campaign-stage">
-                      <span className="muted micro">Stage</span>
-                      <span className="overview-campaign-stage-val">{c.stageLabel}</span>
-                    </span>
+                    {c.officialStage && (
+                      <span className={`stage-chip color-${c.officialStage.color}`}>
+                        {c.officialStage.label}
+                      </span>
+                    )}
                     {c.campaign.status !== 'completed' && (
-                      <span>
-                        <span className="muted micro">Time in stage</span>
-                        <span className={`overview-campaign-stage-val tone-${ageTone}`}>
-                          {timeInStage(c.lastUpdate)}
-                        </span>
+                      <span className={`stage-chip-age tone-${ageTone}`}>
+                        {timeInStage(c.lastUpdate)}
                       </span>
                     )}
                     {rating != null && (

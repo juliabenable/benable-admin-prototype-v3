@@ -170,10 +170,13 @@ export function selectCreatorCampaigns(events, creatorId, campaigns) {
     const campaign = campaigns.find((c) => c.id === campaignId);
     if (!campaign) continue;
     const reduced = reduceCampaignStage(evts);
+    const officialStageId = mapToOfficialStage(reduced.stage, campaign.status);
     out.push({
       campaign,
       ...reduced,
       stageLabel: CAMPAIGN_STAGE_LABEL[reduced.stage],
+      officialStageId,
+      officialStage: officialStageId ? OFFICIAL_STAGE_BY_ID[officialStageId] : null,
     });
   }
   // Sort: live campaigns first, then completed, then draft; within group most-recent first.
@@ -256,6 +259,47 @@ export function searchMatches(query, creator) {
 }
 
 export { CAMPAIGN_STAGE_LABEL };
+
+/* ───────── Official campaign stages (Katie May 8) ─────────
+ * The 10 canonical stages a creator can be in within a campaign.
+ * Internal granular stages are folded into these for display.
+ */
+export const OFFICIAL_STAGES = [
+  { id: 'invited',             label: 'Invited',                color: 'yellow' },
+  { id: 'accepted',            label: 'Accepted',               color: 'green' },
+  { id: 'declined',            label: 'Declined',               color: 'red' },
+  { id: 'product_ordered',     label: 'Products Ordered',       color: 'purple' },
+  { id: 'awaiting_content',    label: 'Awaiting Content',       color: 'orange' },
+  { id: 'awaiting_review',     label: 'Awaiting Review',        color: 'coral' },
+  { id: 'feedback_given',      label: 'Feedback Given',         color: 'blue' },
+  { id: 'waiting_final_links', label: 'Waiting for Final Links', color: 'teal' },
+  { id: 'posted',              label: 'Posted',                 color: 'pink' },
+  { id: 'completed',           label: 'Completed',              color: 'gray' },
+];
+export const OFFICIAL_STAGE_BY_ID = OFFICIAL_STAGES.reduce((m, s) => { m[s.id] = s; return m; }, {});
+
+// Map a granular internal stage + the campaign's overall status to one of the
+// 10 official stages. Returns null for NONE (creator not actually in campaign).
+export function mapToOfficialStage(internalStage, campaignStatus) {
+  switch (internalStage) {
+    case 'NONE': return null;
+    case 'ASSIGNED':
+    case 'DETAILS_VIEWED':
+    case 'BRIEF_SCROLLED':            return 'invited';
+    case 'ACCEPTED':
+    case 'PRODUCTS_SELECTED':         return 'accepted';
+    case 'DECLINED':                  return 'declined';
+    case 'ORDER_PLACED':              return 'product_ordered';
+    case 'PRODUCT_SHIPPED':
+    case 'DELIVERED':                 return 'awaiting_content';
+    case 'CONTENT_SUBMITTED':         return 'awaiting_review';
+    case 'CONTENT_REVISION_REQUESTED': return 'feedback_given';
+    case 'CONTENT_APPROVED':          return 'waiting_final_links';
+    case 'CONTENT_LIVE':
+      return campaignStatus === 'completed' ? 'completed' : 'posted';
+    default:                          return null;
+  }
+}
 
 /* ───────── Brand-pool status (per creator × brand) ───────── */
 

@@ -3,6 +3,7 @@ import { Plus, ChevronDown, Check, X as XIcon, Clock, HelpCircle, AlertTriangle 
 import { useEventStore } from '../../../store/useEventStore.jsx';
 import {
   selectCreatorCampaigns, selectCreatorBrandPools, TODAY_ISO,
+  OFFICIAL_STAGES,
 } from '../../../domain/selectors.js';
 import { useToast } from '../../../components/Toast.jsx';
 import Pill from '../../../components/Pill.jsx';
@@ -33,14 +34,11 @@ function stageAgeTone(days) {
   return 'gray';
 }
 
-function timeInStage(iso) {
-  if (!iso) return '—';
+function compactAge(iso) {
+  if (!iso) return '';
   const days = stageAgeDays(iso);
   if (days === 0) return 'today';
-  if (days === 1) return '1 day';
-  if (days < 30) return `${days} days`;
-  if (days < 60) return '1 month';
-  return `${Math.round(days / 30)} months`;
+  return `${days}d`;
 }
 
 // Derive creator decision from stage:
@@ -100,6 +98,23 @@ export default function CampaignsTab({ creator, onOpenAssign }) {
   );
 
   const [openMenu, setOpenMenu] = useState(null);
+  // Stage filter at top of tab — 'all' or one of the 10 official stage ids
+  const [stageFilter, setStageFilter] = useState('all');
+
+  // Count live campaigns per official stage for filter chip badges
+  const stageCounts = useMemo(() => {
+    const counts = { all: liveCampaigns.length };
+    for (const c of liveCampaigns) {
+      const id = c.officialStageId ?? 'invited';
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    return counts;
+  }, [liveCampaigns]);
+
+  const filteredCampaigns = useMemo(() => {
+    if (stageFilter === 'all') return liveCampaigns;
+    return liveCampaigns.filter((c) => c.officialStageId === stageFilter);
+  }, [liveCampaigns, stageFilter]);
 
   const declineReasons = useMemo(() => {
     const m = new Map();
@@ -132,17 +147,48 @@ export default function CampaignsTab({ creator, onOpenAssign }) {
         </button>
       </div>
 
+      {/* ─── Stage filter strip (Katie May 8) ─── */}
+      {liveCampaigns.length > 0 && (
+        <div className="stage-filter-strip">
+          <button
+            type="button"
+            className={`stage-chip stage-filter-chip all ${stageFilter === 'all' ? 'active' : ''}`}
+            data-count={stageCounts.all}
+            onClick={() => setStageFilter('all')}
+          >
+            All <span className="stage-filter-count">({stageCounts.all})</span>
+          </button>
+          {OFFICIAL_STAGES.map((s) => {
+            const count = stageCounts[s.id] ?? 0;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className={`stage-chip stage-filter-chip color-${s.color} ${stageFilter === s.id ? 'active' : ''}`}
+                data-count={count}
+                onClick={() => setStageFilter(s.id)}
+              >
+                {s.label} <span className="stage-filter-count">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {liveCampaigns.length === 0 ? (
         <div className="tab-empty">Not in any live campaigns. Use "Assign to New Campaign" to add this creator.</div>
+      ) : filteredCampaigns.length === 0 ? (
+        <div className="tab-empty">No live campaigns in this stage.</div>
       ) : (
         <ul className="campaign-card-list">
-          {liveCampaigns.map((c) => {
+          {filteredCampaigns.map((c) => {
             const cDec = creatorDecision(c.stage);
             const bDec = brandDecisionKind(c.brandDecision);
             const menuKey = c.campaign.id;
             const ageDays = stageAgeDays(c.lastUpdate);
             const ageTone = stageAgeTone(ageDays);
             const stalled = ageDays >= 7;
+            const stage = c.officialStage ?? { id: 'invited', label: 'Invited', color: 'yellow' };
             return (
               <li key={c.campaign.id} className={`campaign-card ${stalled ? `stalled-${ageTone}` : ''}`}>
                 <div className="campaign-card-head">
@@ -161,58 +207,38 @@ export default function CampaignsTab({ creator, onOpenAssign }) {
                   </div>
                 </div>
 
-                {/* Headline row — Stage is the primary signal, time-in-stage uses
-                    traffic-light tone so "what needs attention" reads at a glance. */}
-                <div className="campaign-stage-row">
-                  <div className="campaign-stage-main">
-                    <div className="muted micro">Stage</div>
-                    <div className="campaign-stage-prom">{c.stageLabel}</div>
-                  </div>
-                  <div className="campaign-stage-age-wrap">
-                    <div className="muted micro">Time in stage</div>
-                    <div className={`campaign-stage-age tone-${ageTone}`}>
-                      {stalled && <AlertTriangle size={12} />}
-                      {timeInStage(c.lastUpdate)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Secondary row — the two decisions */}
-                <div className="campaign-decisions">
-                  <div className="campaign-decision-cell">
-                    <div className="muted micro">Creator decision</div>
-                    <DecisionBadge kind={cDec} />
-                  </div>
-                  <div className="campaign-decision-cell">
-                    <div className="muted micro">Brand decision</div>
-                    <div className="row gap-2">
-                      <DecisionBadge kind={bDec} />
-                      <div className="simulate-wrap">
-                        <button
-                          type="button"
-                          className="btn ghost small"
-                          onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
-                          title="Simulate brand action (demo only)"
-                        >
-                          <ChevronDown size={14} />
-                        </button>
-                        {openMenu === menuKey && (
-                          <div className="simulate-menu">
-                            <div className="simulate-menu-header">Simulate brand action</div>
-                            {SIMULATE_OPTIONS.map((opt) => (
-                              <button
-                                key={opt.type}
-                                type="button"
-                                className="simulate-menu-item"
-                                onClick={() => fireBrandAction(c.campaign.id, opt.type)}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                {/* Single headline: official-stage chip + compact age */}
+                <div className="campaign-stage-headline">
+                  <span className={`stage-chip color-${stage.color}`}>
+                    {stage.label}
+                  </span>
+                  <span className={`stage-chip-age tone-${ageTone}`}>{compactAge(c.lastUpdate)}</span>
+                  <span style={{ flex: 1 }} />
+                  {/* Brand-action simulate (demo) — kept as small ghost trigger */}
+                  <div className="simulate-wrap">
+                    <button
+                      type="button"
+                      className="btn ghost small"
+                      onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
+                      title="Simulate brand action (demo only)"
+                    >
+                      Brand <ChevronDown size={14} />
+                    </button>
+                    {openMenu === menuKey && (
+                      <div className="simulate-menu">
+                        <div className="simulate-menu-header">Simulate brand action</div>
+                        {SIMULATE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.type}
+                            type="button"
+                            className="simulate-menu-item"
+                            onClick={() => fireBrandAction(c.campaign.id, opt.type)}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 

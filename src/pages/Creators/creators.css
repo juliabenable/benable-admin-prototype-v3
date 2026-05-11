@@ -1466,6 +1466,14 @@
 /* ─────────────────────────────────────────
    Campaigns tab v2 — decision badges + pools
    ───────────────────────────────────────── */
+/* Single-line headline showing the official stage chip + age + brand sim */
+.campaign-stage-headline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 6px;
+}
+
 /* Headline stage row in the campaign tile — promotes Stage + time-in-stage
    so "what needs attention" reads at a glance (Katie May 8). */
 .campaign-stage-row {
@@ -1547,6 +1555,94 @@
   border: 1px solid;
   white-space: nowrap;
   width: fit-content;
+}
+
+/* ───── Official campaign stage chips (Katie May 8 spec) ─────
+   One chip per stage, light tinted fill + colored text + matching border.
+   Used both as the per-campaign stage indicator (in profile tile rows) and
+   as filter chips at the top of the Campaigns tab. */
+.stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.3;
+  background: var(--stage-bg, #F3F4F6);
+  color: var(--stage-fg, #4B5563);
+  border-color: var(--stage-border, #D1D5DB);
+}
+.stage-chip .stage-chip-chev {
+  opacity: 0.7;
+  margin-left: 1px;
+}
+.stage-chip-age {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.stage-chip-age.tone-yellow { color: #B45309; }
+.stage-chip-age.tone-red { color: #B91C1C; }
+
+/* Per-color palette — light fill / colored text / colored border */
+.stage-chip.color-yellow { --stage-bg: #FEF3C7; --stage-fg: #B45309; --stage-border: #FDE68A; }
+.stage-chip.color-green  { --stage-bg: #DCFCE7; --stage-fg: #166534; --stage-border: #BBF7D0; }
+.stage-chip.color-red    { --stage-bg: #FEE2E2; --stage-fg: #B91C1C; --stage-border: #FCA5A5; }
+.stage-chip.color-purple { --stage-bg: #EDE9FE; --stage-fg: #6D28D9; --stage-border: #C4B5FD; }
+.stage-chip.color-orange { --stage-bg: #FFEDD5; --stage-fg: #C2410C; --stage-border: #FED7AA; }
+.stage-chip.color-coral  { --stage-bg: #FFE4E6; --stage-fg: #BE123C; --stage-border: #FECDD3; }
+.stage-chip.color-blue   { --stage-bg: #DBEAFE; --stage-fg: #1D4ED8; --stage-border: #BFDBFE; }
+.stage-chip.color-teal   { --stage-bg: #CFFAFE; --stage-fg: #0E7490; --stage-border: #A5F3FC; }
+.stage-chip.color-pink   { --stage-bg: #FCE7F3; --stage-fg: #BE185D; --stage-border: #FBCFE8; }
+.stage-chip.color-gray   { --stage-bg: #F3F4F6; --stage-fg: #4B5563; --stage-border: #D1D5DB; }
+
+/* Filter strip — horizontal row of all stages with counts */
+.stage-filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.stage-filter-chip {
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border: 1px solid var(--stage-border, #D1D5DB);
+  color: var(--stage-fg, #4B5563);
+  font-family: inherit;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+.stage-filter-chip:hover {
+  background: var(--stage-bg, #F3F4F6);
+}
+.stage-filter-chip.active {
+  background: var(--stage-bg, #F3F4F6);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--stage-fg, #4B5563) inset;
+}
+.stage-filter-chip[data-count="0"] {
+  opacity: 0.45;
+}
+.stage-filter-chip[data-count="0"]:hover {
+  opacity: 1;
+}
+.stage-filter-count {
+  font-weight: 500;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+.stage-filter-chip.all {
+  --stage-bg: var(--color-surface-2);
+  --stage-fg: var(--color-text);
+  --stage-border: var(--color-border);
 }
 .decision-badge.tone-green { background: var(--pill-green-bg); color: var(--pill-green-text); border-color: var(--pill-green-border); }
 .decision-badge.tone-red { background: var(--pill-red-bg); color: var(--pill-red-text); border-color: var(--pill-red-border); }
