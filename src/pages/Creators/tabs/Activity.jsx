@@ -7,7 +7,7 @@ import {
 import { useEventStore } from '../../../store/useEventStore.jsx';
 import { selectActivityFeed } from '../../../domain/selectors.js';
 import {
-  formatFullDate, formatDateOnly, formatTimeOnly, formatMonthAbbr, formatDayNum,
+  formatRelative, formatFullDate, formatDateOnly, formatTimeOnly,
 } from '../../../components/RelativeTime.jsx';
 import { EVENT_TYPES as E } from '../../../domain/events.js';
 
@@ -121,7 +121,7 @@ export function computeResponseTime(event, allCreatorEvents) {
   return { duration: dur, label: pair.label };
 }
 
-// Map actor.kind → tone (legacy helper, kept for the Overview compact view)
+// Map actor.kind → tone for the timeline dot
 export function actorTone(actor, fallbackTone) {
   if (!actor) return fallbackTone;
   if (actor.kind === 'brand') return 'yellow';
@@ -136,20 +136,6 @@ export const ACTOR_LABEL = {
   creator: 'Creator',
   system: 'System',
 };
-
-// Actor → badge label + tone. Named ops members (Julia, Katie) show as the
-// uppercased first name in purple; generic ops stays "OPS" in blue.
-// (Per Katie May 8 design ref.)
-export function actorBadge(actor) {
-  if (!actor) return null;
-  if (actor.kind === 'ops') {
-    if (actor.name) return { label: actor.name.toUpperCase(), tone: 'purple' };
-    return { label: 'OPS', tone: 'blue' };
-  }
-  if (actor.kind === 'creator') return { label: 'CREATOR', tone: 'purple' };
-  if (actor.kind === 'brand') return { label: 'BRAND', tone: 'yellow' };
-  return null;
-}
 
 export function eventSubline(event, campaigns, brands = []) {
   const campaign = event.campaignId ? campaigns.find((c) => c.id === event.campaignId) : null;
@@ -242,10 +228,10 @@ export function eventSubline(event, campaigns, brands = []) {
 
 export default function ActivityTab({ creator }) {
   const { events, campaigns, brands } = useEventStore();
-  // Notes are part of the activity feed again (Katie May 8 design pass) —
-  // they show inline with the note body as the sub-line.
+  // Notes are NOT part of the activity feed (Katie May 8). Notes live solely
+  // in the Overview tab; this timeline is brand/creator/ops events only.
   const feed = useMemo(
-    () => selectActivityFeed(events, creator.id),
+    () => selectActivityFeed(events, creator.id).filter((e) => e.type !== E.NOTE_ADDED),
     [events, creator.id],
   );
 
@@ -259,11 +245,12 @@ export default function ActivityTab({ creator }) {
           {feed.map((event, i) => {
             const meta = EVENT_META[event.type] ?? { label: event.type, icon: AlertCircle, tone: 'gray' };
             const Icon = meta.icon;
-            const iconTone = meta.tone; // icon = WHAT happened (event-type color)
+            const tone = actorTone(event.actor, meta.tone);
             const sub = eventSubline(event, campaigns, brands);
-            const badge = actorBadge(event.actor); // badge = WHO did it
-            // Group by day — only render the stacked month+day on the first
-            // item of a date run; time renders on every item.
+            const response = computeResponseTime(event, feed);
+            const actorLabel = ACTOR_LABEL[event.actor?.kind] ?? null;
+            // Group by day — only render date + relative on the first item
+            // of a date run (Katie May 8). Time is shown on every item.
             const dateLabel = formatDateOnly(event.timestamp);
             const prevDateLabel = i > 0 ? formatDateOnly(feed[i - 1].timestamp) : null;
             const isNewDay = dateLabel !== prevDateLabel;
@@ -274,21 +261,26 @@ export default function ActivityTab({ creator }) {
               >
                 <div className="timeline-when" title={formatFullDate(event.timestamp)}>
                   {isNewDay && (
-                    <div className="timeline-when-stack">
-                      <div className="timeline-when-month">{formatMonthAbbr(event.timestamp)}</div>
-                      <div className="timeline-when-day">{formatDayNum(event.timestamp)}</div>
-                    </div>
+                    <>
+                      <div className="timeline-when-date">{dateLabel}</div>
+                      <div className="timeline-when-relative muted">{formatRelative(event.timestamp)}</div>
+                    </>
                   )}
                   <div className="timeline-when-time">{formatTimeOnly(event.timestamp)}</div>
                 </div>
-                <span className={`timeline-dot timeline-dot-square tone-${iconTone}`}>
-                  <Icon size={15} />
+                <span className={`timeline-dot tone-${tone}`}>
+                  <Icon size={14} />
                 </span>
                 <div className="timeline-body">
                   <div className="timeline-label-row">
                     <span className="timeline-label">{meta.label}</span>
-                    {badge && (
-                      <span className={`timeline-actor-badge tone-${badge.tone}`}>{badge.label}</span>
+                    {actorLabel && (
+                      <span className={`timeline-actor-badge tone-${tone}`}>{actorLabel}</span>
+                    )}
+                    {response && (
+                      <span className="timeline-response" title={`${response.duration} ${response.label}`}>
+                        {response.duration} {response.label}
+                      </span>
                     )}
                   </div>
                   {sub && <div className="timeline-sub">{sub}</div>}

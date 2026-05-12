@@ -359,21 +359,13 @@
 .calendar-tag-dot.color-lavender  { background: #7986CB; }
 .calendar-tag-dot.color-flamingo  { background: #E67C73; }
 .profile-header-contact {
-  margin-top: 8px;
+  margin-top: 12px;
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
   font-size: 12px;
   color: var(--color-text-muted);
   align-items: center;
-}
-/* Secondary row in the simplified header — portal status + View in Benable */
-.profile-header-secondary {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
 }
 .profile-header-contact .contact-link {
   display: inline-flex;
@@ -800,58 +792,6 @@
 }
 
 /* ─────────────────────────────────────────
-   Notes tab (Katie May 8)
-   ───────────────────────────────────────── */
-.notes-tab {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.notes-compose {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-.notes-compose .input,
-.notes-compose .textarea {
-  flex: 1;
-}
-.notes-compose .btn.primary {
-  align-self: flex-end;
-}
-.notes-compose:not(.expanded) .btn.primary {
-  align-self: stretch;
-}
-.notes-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.note-card {
-  background: var(--color-surface-2);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-}
-.note-meta {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 5px;
-}
-.note-author {
-  font-weight: 600;
-  font-size: 13px;
-}
-.note-body {
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-/* ─────────────────────────────────────────
    Activity tab
    ───────────────────────────────────────── */
 .activity-tab {
@@ -910,35 +850,34 @@
   padding-top: 6px;
   min-width: 0;
 }
-/* Stacked month + day, calendar-tear-off style — MAY / 11 */
-.timeline-when-stack {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-  margin-bottom: 6px;
-}
-.timeline-when-month {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.timeline-when-day {
-  font-size: 18px;
+.timeline-when-date {
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
-  line-height: 1.05;
+  line-height: 1.2;
+}
+/* Relative caption hugs the date — they're metadata of one block */
+.timeline-when-relative {
+  font-size: 10px;
+  color: var(--color-text-subtle);
+  text-transform: lowercase;
+  line-height: 1.3;
   margin-top: 1px;
 }
+/* Time is a separate datum — clear breathing room before it */
 .timeline-when-time {
   font-size: 11px;
   font-weight: 500;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
+  margin-top: 8px;
+}
+/* On same-day rows the date is hidden, so the time aligns to the top */
+.timeline-item.same-day .timeline-when-time {
+  margin-top: 0;
 }
 
 /* Compact variant — used in Overview's "Recent activity" section so it
@@ -971,10 +910,6 @@
   flex-shrink: 0;
   position: relative;
   z-index: 1;
-}
-/* Square variant — rounded rectangle, used in Activity tab per design ref */
-.timeline-dot.timeline-dot-square {
-  border-radius: 7px;
 }
 .timeline-dot.tone-purple { background: #EBE4FF; color: #6D28D9; }
 .timeline-dot.tone-green  { background: #DCFCE7; color: #15803D; }
