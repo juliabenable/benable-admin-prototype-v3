@@ -57,6 +57,18 @@ export function formatDateOnly(iso) {
   });
 }
 
+// Month abbreviation only ("May") — for stacked date display
+export function formatMonthAbbr(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', timeZone: TZ });
+}
+
+// Day of month only ("11") — for stacked date display
+export function formatDayNum(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', { day: 'numeric', timeZone: TZ });
+}
+
 // Time-only ("10:32 AM") — used in the date column under the date
 export function formatTimeOnly(iso) {
   if (!iso) return '';

@@ -1,35 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  X, Mail, Phone, Plus, MessageSquare, Star, Sparkles, Users,
+  X, Mail, Phone, Plus, MessageSquare, StickyNote, Sparkles,
   BadgeCheck, ExternalLink,
 } from 'lucide-react';
 import Avatar from '../../components/Avatar.jsx';
 import Pill from '../../components/Pill.jsx';
 import { InstagramIcon, TikTokIcon } from '../../components/SocialIcons.jsx';
 import PortalStatusPill from '../../components/PortalStatusPill.jsx';
-import OverviewTab from './tabs/Overview.jsx';
 import ActivityTab from './tabs/Activity.jsx';
 import CampaignsTab from './tabs/Campaigns.jsx';
+import NotesTab from './tabs/Notes.jsx';
 import PreferencesTab from './tabs/Preferences.jsx';
-import AICardTab from './tabs/AICard.jsx';
-import LogisticsTab from './tabs/Logistics.jsx';
-import ScoringTab from './tabs/Scoring.jsx';
 import AssignToCampaign from './modals/AssignToCampaign.jsx';
-import AssignToPool from './modals/AssignToPool.jsx';
 import SendNudge from './modals/SendNudge.jsx';
 import { useEventStore } from '../../store/useEventStore.jsx';
 import {
-  selectCreatorCampaigns, selectAllTags, selectCreatorScores,
+  selectCreatorCampaigns, selectCreatorScores,
 } from '../../domain/selectors.js';
+import { EVENT_TYPES as E } from '../../domain/events.js';
 
+// Simplified to 4 tabs per Katie May 8 design ref. The previous Overview /
+// AI Card / Logistics / Scoring tabs are still in the codebase but no longer
+// surfaced — their content is either redundant (Overview) or accessible from
+// the relevant action button / modal.
 const TABS = [
-  { id: 'overview',    label: 'Overview' },
   { id: 'activity',    label: 'Activity' },
   { id: 'campaigns',   label: 'Campaigns' },
-  { id: 'aicard',      label: 'AI Card' },
+  { id: 'notes',       label: 'Notes' },
   { id: 'preferences', label: 'Preferences' },
-  { id: 'logistics',   label: 'Logistics' },
-  { id: 'scoring',     label: 'Scoring' },
 ];
 
 function formatFollowers(n) {
@@ -57,16 +55,30 @@ export default function ProfilePanel({ entry, onClose }) {
   if (!entry) return null;
   const { creator, status, activeCampaignCount } = entry;
   const { events, campaigns } = useEventStore();
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('activity');
   const [assignOpen, setAssignOpen] = useState(false);
-  const [assignPoolOpen, setAssignPoolOpen] = useState(false);
   const [nudgeOpen, setNudgeOpen] = useState(false);
   const [focusNote, setFocusNote] = useState(0);
 
   const campaignList = selectCreatorCampaigns(events, creator.id, campaigns);
   const campaignCount = campaignList.length;
-  const tags = selectAllTags(creator);
   const scores = selectCreatorScores(events, creator.id);
+
+  // Note count for the Notes tab badge
+  const noteCount = useMemo(
+    () => events.filter((e) => e.creatorId === creator.id && e.type === E.NOTE_ADDED).length,
+    [events, creator.id],
+  );
+
+  // Top-of-stage chip: the creator's most-active campaign stage, shown next
+  // to the name as in the design ref ("Content submitted").
+  const topStage = useMemo(() => {
+    const live = campaignList.filter((c) => c.campaign.status === 'live' && c.officialStage);
+    if (!live.length) return null;
+    // most recent activity wins
+    live.sort((a, b) => (b.lastUpdate ?? '').localeCompare(a.lastUpdate ?? ''));
+    return live[0].officialStage;
+  }, [campaignList]);
 
   // Has any reviewed AI card?
   const hasReviewedCard = events.some(
@@ -74,16 +86,16 @@ export default function ProfilePanel({ entry, onClose }) {
   );
 
   useEffect(() => {
-    setTab('overview');
+    setTab('activity');
   }, [creator.id]);
 
   useEffect(() => {
     function onKey(e) {
-      if (e.key === 'Escape' && !assignOpen && !assignPoolOpen && !nudgeOpen) onClose?.();
+      if (e.key === 'Escape' && !assignOpen && !nudgeOpen) onClose?.();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose, assignOpen, assignPoolOpen, nudgeOpen]);
+  }, [onClose, assignOpen, nudgeOpen]);
 
   const primaryPlatform = (creator.platformStats?.instagram?.followers ?? 0) >= (creator.platformStats?.tiktok?.followers ?? 0)
     ? 'instagram' : 'tiktok';
@@ -100,7 +112,7 @@ export default function ProfilePanel({ entry, onClose }) {
         </button>
 
         <div className="profile-header-main">
-          <Avatar creator={creator} size={64} />
+          <Avatar creator={creator} size={48} />
           <div className="profile-header-meta">
             <div className="profile-header-name-row">
               <h2>{creator.name}</h2>
@@ -111,9 +123,16 @@ export default function ProfilePanel({ entry, onClose }) {
                   aria-label="AI card reviewed"
                 />
               )}
-              <PortalStatusPill status={status} />
+              {/* Current campaign stage chip — shown when creator has a live
+                  campaign. Replaces the busier portal-status pill at the top
+                  of the name row per the May 8 design ref. */}
+              {topStage && (
+                <span className={`stage-chip color-${topStage.color}`}>
+                  {topStage.label}
+                </span>
+              )}
               {activeCampaignCount > 0 && (
-                <Pill color="purple">{activeCampaignCount} active</Pill>
+                <Pill color="purple"><Sparkles size={11} /> {activeCampaignCount} active</Pill>
               )}
             </div>
 
@@ -123,47 +142,6 @@ export default function ProfilePanel({ entry, onClose }) {
                 <span className="muted"> · {creator.locationCity}</span>
               )}
             </div>
-
-            {/* Reliability on its own line — no colored pill (Katie May 8) */}
-            {scores.reliability != null && (
-              <div className="profile-header-reliability">
-                <span className="muted">Reliability</span>{' '}
-                <span className="profile-header-reliability-val">
-                  {scores.reliability.toFixed(1)}
-                </span>
-                <span className="muted">/10</span>
-              </div>
-            )}
-
-            {creator.contentNiche && (
-              <div className="profile-header-bio">{creator.contentNiche}</div>
-            )}
-
-            {creator.categories?.length > 0 && (
-              <div className="profile-header-tags">
-                {creator.categories.slice(0, 3).map((t) => (
-                  <span key={t} className="tag-mini">{t}</span>
-                ))}
-              </div>
-            )}
-
-            {/* Admin-managed tags — Google Calendar-style chip (colored dot
-                + text) so they read as visually distinct from the solid
-                category chips above. (Katie May 8) */}
-            {tags.length > 0 && (
-              <div className="profile-admin-tags">
-                {tags.slice(0, 6).map((t) => {
-                  const color = calendarTagColor(t);
-                  return (
-                    <span key={t} className={`calendar-tag color-${color}`}>
-                      <span className={`calendar-tag-dot color-${color}`} aria-hidden="true" />
-                      {t.replace(/-/g, ' ')}
-                    </span>
-                  );
-                })}
-                {tags.length > 6 && <span className="muted small">+{tags.length - 6}</span>}
-              </div>
-            )}
 
             <div className="profile-header-contact">
               <a href={`mailto:${creator.email}`} className="contact-link">
@@ -183,80 +161,53 @@ export default function ProfilePanel({ entry, onClose }) {
                 )}
               </span>
             </div>
-          </div>
 
-          {(() => {
-            // Defensive fallback so the button always shows. Falls back to
-            // creator.handle (sans @) if benableHandle is somehow missing.
-            const path = creator.benableHandle ?? creator.handle?.replace(/^@/, '');
-            if (!path) return null;
-            return (
-              <a
-                href={`https://benable.com/${path}`}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-view-in-benable"
-                title={`benable.com/${path}`}
-              >
-                <ExternalLink size={14} /> View in Benable
-              </a>
-            );
-          })()}
+            {/* Portal status moves to a small secondary row so the busy
+                cluster near the name reads cleanly. */}
+            <div className="profile-header-secondary">
+              <PortalStatusPill status={status} />
+              {(() => {
+                const path = creator.benableHandle ?? creator.handle?.replace(/^@/, '');
+                if (!path) return null;
+                return (
+                  <a
+                    href={`https://benable.com/${path}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-view-in-benable"
+                    title={`benable.com/${path}`}
+                  >
+                    <ExternalLink size={13} /> View in Benable
+                  </a>
+                );
+              })()}
+            </div>
+          </div>
         </div>
-
-        {/* Stat tiles — Reliability + Top tags removed per Katie May 8.
-            Reliability is now inline next to the handle; tags live in the
-            admin-tags strip above. Followers + Quality keep their tiles
-            since they don't fit cleanly inline. */}
-        {(platformsWithFollowers.length > 0 || scores.quality != null) && (
-          <div className="profile-stats profile-stats-2col">
-            {platformsWithFollowers.length > 0 && (
-              <div className="profile-stat">
-                <div className="profile-stat-label">Followers</div>
-                <div className="profile-stat-value">
-                  {platformsWithFollowers.map((p, i) => (
-                    <span key={p} className="profile-stat-platform">
-                      {i > 0 && <span className="profile-stat-sep">·</span>}
-                      <span className="profile-stat-platform-badge">{p === 'instagram' ? 'IG' : 'TT'}</span>
-                      <span className="profile-stat-platform-num">
-                        {formatFollowers(creator.platformStats[p].followers)}
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {scores.quality != null && (
-              <div className="profile-stat">
-                <div className="profile-stat-label">Quality</div>
-                <div className="profile-stat-value">
-                  <Star size={14} fill="currentColor" className="profile-stat-icon" />
-                  <span className="profile-stat-num">{scores.quality.toFixed(1)}</span>
-                  <span className="profile-stat-suffix">({scores.qualityCount})</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="profile-actions">
           <button type="button" className="btn primary" onClick={() => setAssignOpen(true)}>
             <Plus size={14} /> Assign to Campaign
           </button>
-          <button type="button" className="btn secondary" onClick={() => setAssignPoolOpen(true)}>
-            <Users size={14} /> Assign to Pool
-          </button>
           <button type="button" className="btn secondary" onClick={() => setNudgeOpen(true)}>
             <MessageSquare size={14} /> Send Nudge
+          </button>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => { setTab('notes'); setFocusNote((k) => k + 1); }}
+          >
+            <StickyNote size={14} /> Note
           </button>
         </div>
       </header>
 
-      {/* ─────────────────── EXPANDED TABS ─────────────────── */}
+      {/* ─────────────────── TABS ─────────────────── */}
       <nav className="profile-tabs" role="tablist">
         {TABS.map((t) => {
           let count = null;
           if (t.id === 'campaigns') count = campaignCount;
+          else if (t.id === 'notes') count = noteCount;
           return (
             <button
               key={t.id}
@@ -267,31 +218,22 @@ export default function ProfilePanel({ entry, onClose }) {
               onClick={() => setTab(t.id)}
             >
               {t.label}{count != null ? ` (${count})` : ''}
-              {t.id === 'aicard' && hasReviewedCard && (
-                <Sparkles size={12} className="profile-tab-icon-after" />
-              )}
             </button>
           );
         })}
       </nav>
 
       <div className="profile-tab-body">
-        {tab === 'overview' && <OverviewTab creator={creator} onSwitchTab={setTab} onClose={onClose} />}
-        {tab === 'activity' && <ActivityTab creator={creator} focusNoteKey={focusNote} />}
+        {tab === 'activity' && <ActivityTab creator={creator} />}
         {tab === 'campaigns' && (
           <CampaignsTab creator={creator} onOpenAssign={() => setAssignOpen(true)} />
         )}
-        {tab === 'aicard' && <AICardTab creator={creator} />}
+        {tab === 'notes' && <NotesTab creator={creator} focusKey={focusNote} />}
         {tab === 'preferences' && <PreferencesTab creator={creator} />}
-        {tab === 'logistics' && <LogisticsTab creator={creator} />}
-        {tab === 'scoring' && <ScoringTab creator={creator} scores={scores} />}
       </div>
 
       {assignOpen && (
         <AssignToCampaign creator={creator} onClose={() => setAssignOpen(false)} />
-      )}
-      {assignPoolOpen && (
-        <AssignToPool creator={creator} onClose={() => setAssignPoolOpen(false)} />
       )}
       {nudgeOpen && (
         <SendNudge creator={creator} status={status} onClose={() => setNudgeOpen(false)} />
