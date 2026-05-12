@@ -826,20 +826,28 @@
   width: 2px;
   background: var(--color-border);
 }
-/* Activity-tab variant — date column on the left, then icon, then body. */
+/* Activity-tab variant — date column on the left, then icon, then body.
+   Spacing harmonized on an 8-pt scale (2/4/6/8/12/16) with a single
+   alignment anchor at padding-top: 6px across all three columns. */
 .activity-tab .timeline {
-  --timeline-line-x: 117px; /* center of 28px icon at column 2 */
+  --timeline-line-x: 105px; /* center of 28px icon: 80 col + 12 gap + 14 = 106 */
 }
 .activity-tab .timeline-item {
-  grid-template-columns: 90px 28px 1fr;
+  grid-template-columns: 80px 28px 1fr;
+  gap: 12px;
+  padding: 8px 0;
+  align-items: start;
+}
+/* Day-group separator — clean margin between days, not internal padding */
+.activity-tab .timeline-item.new-day:not(:first-child) {
+  margin-top: 16px;
 }
 .timeline-when {
   display: flex;
   flex-direction: column;
-  gap: 1px;
   text-align: left;
   align-self: start;
-  padding-top: 6px; /* sits flush with the icon vertically */
+  padding-top: 6px;
   min-width: 0;
 }
 .timeline-when-date {
@@ -850,30 +858,26 @@
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
+/* Relative caption hugs the date — they're metadata of one block */
 .timeline-when-relative {
   font-size: 10px;
   color: var(--color-text-subtle);
   text-transform: lowercase;
-  margin-bottom: 2px;
+  line-height: 1.3;
+  margin-top: 1px;
 }
+/* Time is a separate datum — clear breathing room before it */
 .timeline-when-time {
   font-size: 11px;
   font-weight: 500;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
-  line-height: 1.4;
+  line-height: 1.3;
+  margin-top: 8px;
 }
-/* Same-day rows hide the date — time aligns near the icon top */
-.activity-tab .timeline-item.same-day {
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-.activity-tab .timeline-item.new-day {
-  padding-top: 14px;
-  padding-bottom: 4px;
-}
-.activity-tab .timeline-item.new-day:first-child {
-  padding-top: 4px;
+/* On same-day rows the date is hidden, so the time aligns to the top */
+.timeline-item.same-day .timeline-when-time {
+  margin-top: 0;
 }
 
 /* Compact variant — used in Overview's "Recent activity" section so it
@@ -917,9 +921,9 @@
 .timeline-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
-  padding-top: 5px;
+  padding-top: 6px;
 }
 .timeline-label-row {
   display: flex;
@@ -932,14 +936,22 @@
 .timeline-time { font-size: 11px; color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
 .timeline-time-relative { margin-left: 2px; }
 
-.timeline-actor-badge {
-  display: inline-block;
+/* Actor badge and response pill share shape — only color differs.
+   Actor = WHO (tone-colored). Response = WHEN (gray). */
+.timeline-actor-badge,
+.timeline-response {
+  display: inline-flex;
+  align-items: center;
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.timeline-actor-badge {
   text-transform: uppercase;
-  letter-spacing: 0.05em;
   border: 1px solid;
 }
 .timeline-actor-badge.tone-purple { background: var(--pill-purple-bg); color: var(--pill-purple-text); border-color: var(--pill-purple-border); }
@@ -950,13 +962,8 @@
 .timeline-actor-badge.tone-gray { background: var(--color-surface-2); color: var(--color-text-muted); border-color: var(--color-border); }
 
 .timeline-response {
-  font-size: 10px;
-  font-weight: 700;
   color: var(--color-text-muted);
   background: var(--color-surface-2);
-  padding: 1px 7px;
-  border-radius: 999px;
-  letter-spacing: 0.02em;
   margin-left: auto; /* push to the right end of the label row */
 }
 
